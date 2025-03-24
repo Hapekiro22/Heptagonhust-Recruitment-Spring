@@ -527,9 +527,9 @@ void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B
   C_tensor_t C_tensor = (C_tensor_t)C;
 
   // 定义分块大小
-  const int BM = 64; // M方向分块
-  const int BN = 64; // N方向分块
-  const int BK = 64; // K方向分块
+  const int BM = 32; // M方向分块
+  const int BN = 32; // N方向分块
+  const int BK = 32; // K方向分块
 
   #pragma omp parallel for schedule(guided) collapse(2)
   for (int64_t bn = 0; bn < N; bn += BN) {

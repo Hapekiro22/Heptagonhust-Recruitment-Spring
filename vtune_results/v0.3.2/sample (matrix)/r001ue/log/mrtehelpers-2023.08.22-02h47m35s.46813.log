@@ -1,0 +1,3 @@
+306 [139708457805376] INFO mrtehelpers.mrteenv <> - Product libs directory: /home/vtune/Intel_VTune_Profiler_2023.2.0/lib64
+306 [139708457805376] INFO mrtehelpers.mrteenv <> - File mask: amplxe_samplingmrte_clrprof*
+308 [139708457805376] INFO mrtehelpers.mrteenv <> - File name: libamplxe_samplingmrte_clrprof_1.0.so

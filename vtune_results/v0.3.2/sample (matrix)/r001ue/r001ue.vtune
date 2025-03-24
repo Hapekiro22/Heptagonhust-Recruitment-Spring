@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+ <rdmgr>
+  <timestamp type="u64_t">1692697655</timestamp>
+  <hostname type="string">9049fa0820a9.jf.intel.com</hostname>
+  <os type="string">linux</os>
+  <product type="string">Intel® VTune™ Profiler 2023.2.0 pre-release</product>
+  <buildNumber type="s32_t">626239</buildNumber>
+  <logicalCPUCount type="s32_t">20</logicalCPUCount>
+  <physicalCoreCount type="s32_t">14</physicalCoreCount>
+  <processorPackageCount type="s32_t">1</processorPackageCount>
+  <CPUFrequency type="s64_t">2900000000</CPUFrequency>
+  <CPUFamily type="s32_t">6</CPUFamily>
+  <CPUModel type="s32_t">154</CPUModel>
+  <CPUStepping type="s32_t">3</CPUStepping>
+  <CPUBrandName type="string">12th Gen Intel(R) Core(TM) i9-12900HK</CPUBrandName>
+  <isa type="string">avx2</isa>
+  <collectionTimeBegin type="u64_t">1692697655</collectionTimeBegin>
+  <collectionTimeEnd type="u64_t">1692697671</collectionTimeEnd>
+  <variables>
+   <at type="string">ue</at>
+  </variables>
+ </rdmgr>
+</root>

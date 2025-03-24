@@ -1,0 +1,133 @@
+Elapsed Time: 0.251s
+ | Application execution time is too short. Metrics data may be unreliable.
+ | Consider reducing the sampling interval or increasing your application
+ | execution time.
+ |
+    Clockticks: 6,930,000,000
+    Instructions Retired: 7,250,000,000
+    CPI Rate: 0.956
+    MUX Reliability
+    Retiring: 0.0% of Pipeline Slots
+        Light Operations: 0.0% of Pipeline Slots
+            FP Arithmetic: 0.0% of uOps
+                FP x87: 0.0% of uOps
+                FP Scalar: 0.0% of uOps
+                FP Vector: 0.0% of uOps
+                    128-bit FP Vector: 0.0% of uOps
+                    256-bit FP Vector: 0.0% of uOps
+                    512-bit FP Vector: 0.0% of uOps
+            Memory Operations: 0.0% of Pipeline Slots
+            Branch Instructions: 0.0% of Pipeline Slots
+            Nop Instructions: 0.0% of Pipeline Slots
+            Other: 0.0% of Pipeline Slots
+        Heavy Operations: 0.0% of Pipeline Slots
+            Few Uops Instructions: 0.0% of Pipeline Slots
+            Microcode Sequencer: 0.0% of Pipeline Slots
+                Assists: 0.0% of Pipeline Slots
+                CISC: 0.0% of Pipeline Slots
+    Front-End Bound: 0.0% of Pipeline Slots
+        Front-End Latency: 0.0% of Pipeline Slots
+            ICache Misses: 0.0% of Clockticks
+            ITLB Overhead: 0.0% of Clockticks
+            Branch Resteers: 0.0% of Clockticks
+                Mispredicts Resteers: 0.0% of Clockticks
+                Clears Resteers: 0.0% of Clockticks
+                Unknown Branches: 0.0% of Clockticks
+            DSB Switches: 0.0% of Clockticks
+            Length Changing Prefixes: 0.0% of Clockticks
+            MS Switches: 0.0% of Clockticks
+        Front-End Bandwidth: 0.0% of Pipeline Slots
+            Front-End Bandwidth MITE: 0.0% of Pipeline Slots
+                Decoder-0 Alone: 0.0% of Pipeline Slots
+                %MITE_4wide: 0.0% of Clockticks
+            Front-End Bandwidth DSB: 0.0% of Pipeline Slots
+            (Info) DSB Coverage: 0.0%
+            (Info) DSB Misses: 0.0% of Pipeline Slots
+    Bad Speculation: 100.0% of Pipeline Slots
+     | A significant proportion of pipeline slots containing useful work are
+     | being cancelled. This can be caused by mispredicting branches or by
+     | machine clears. Note that this metric value may be highlighted due to
+     | Branch Resteers issue.
+     |
+        Branch Mispredict: 0.0% of Pipeline Slots
+        Machine Clears: 100.0% of Pipeline Slots
+    Back-End Bound: 0.0% of Pipeline Slots
+        Memory Bound: 0.0% of Pipeline Slots
+            L1 Bound: 0.0% of Clockticks
+                DTLB Overhead: 0.0% of Clockticks
+                    Load STLB Hit: 0.0% of Clockticks
+                    Load STLB Miss: 0.0% of Clockticks
+                Loads Blocked by Store Forwarding: 0.0% of Clockticks
+                Lock Latency: 0.0% of Clockticks
+                Split Loads: 0.0% of Clockticks
+                4K Aliasing: 0.0% of Clockticks
+                FB Full: 0.0% of Clockticks
+            L2 Bound
+            L3 Bound: 0.0% of Clockticks
+                Contested Accesses
+                Data Sharing
+                L3 Latency
+                SQ Full: 0.0% of Clockticks
+            DRAM Bound
+                Memory Bandwidth: 0.0% of Clockticks
+                Memory Latency: 0.0% of Clockticks
+                    Local Memory
+                    Remote Memory
+                    Remote Cache
+            Store Bound: 0.0% of Clockticks
+                Store Latency: 20.8% of Clockticks
+                False Sharing: 0.0% of Clockticks
+                Split Stores: 0.0%
+                Streaming Stores: 0.0% of Clockticks
+                DTLB Store Overhead
+                    Store STLB Hit
+                    Store STLB Miss
+        Core Bound: 0.0% of Pipeline Slots
+            Divider: 1.3% of Clockticks
+            Port Utilization: 0.0% of Clockticks
+                Cycles of 0 Ports Utilized: 0.0% of Clockticks
+                    Serializing Operations: 13.5% of Clockticks
+                        Slow Pause: 0.0% of Clockticks
+                    Mixing Vectors: 0.0% of Clockticks
+                Cycles of 1 Port Utilized: 0.0% of Clockticks
+                Cycles of 2 Ports Utilized: 0.0% of Clockticks
+                Cycles of 3+ Ports Utilized: 46.8% of Clockticks
+                    ALU Operation Utilization
+                        Port 0
+                        Port 1
+                        Port 5
+                        Port 6
+                    Load Operation Utilization
+                    Store Operation Utilization
+    Average CPU Frequency: 2.585 GHz
+    Total Thread Count: 66
+    Paused Time: 0s
+Effective CPU Utilization: 16.7%
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Average Effective CPU Utilization: 10.689 out of 64
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/small.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 6.1 MB 
+    Collection start time: 15:05:49 24/03/2025 UTC
+    Collection stop time: 15:05:49 24/03/2025 UTC
+    Collector Type: Driverless Perf system-wide sampling
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.

@@ -1,0 +1,14 @@
+Function                          CPU Time  CPU Time:Effective Time  CPU Time:Spin Time  CPU Time:Overhead Time  Module        Function (Full)                   Source File  Start Address
+--------------------------------  --------  -----------------------  ------------------  ----------------------  ------------  --------------------------------  -----------  -------------
+output_unpacking_store._omp_fn.0    0.730s                   0.730s                  0s                      0s  winograd      output_unpacking_store._omp_fn.0  winograd.cc  0x72b0       
+output_transform._omp_fn.0          0.700s                   0.700s                  0s                      0s  winograd      output_transform._omp_fn.0        winograd.cc  0x56a0       
+sgemm._omp_fn.0                     0.625s                   0.625s                  0s                      0s  winograd      sgemm._omp_fn.0                   winograd.cc  0x7510       
+image_transform._omp_fn.0           0.550s                   0.550s                  0s                      0s  winograd      image_transform._omp_fn.0         winograd.cc  0x2420       
+image_packing._omp_fn.0             0.480s                   0.480s                  0s                      0s  winograd      image_packing._omp_fn.0           winograd.cc  0x6fc0       
+func@0x1af904                       0.245s                   0.245s                  0s                      0s  libc.so.6     func@0x1af904                     [Unknown]    0x1af904     
+free                                0.040s                   0.040s                  0s                      0s  libc.so.6     free                              [Unknown]    0xa53e0      
+test_on_one_layer._omp_fn.0         0.030s                   0.030s                  0s                      0s  winograd      test_on_one_layer._omp_fn.0       driver.cc    0x1b20       
+func@0x20764                        0.020s                   0.020s                  0s                      0s  libgomp.so.1  func@0x20764                      [Unknown]    0x20764      
+GOMP_parallel                       0.010s                   0.010s                  0s                      0s  libgomp.so.1  GOMP_parallel                     [Unknown]    0x149d0      
+func@0x205c4                        0.010s                   0.010s                  0s                      0s  libgomp.so.1  func@0x205c4                      [Unknown]    0x205c4      
+func@0xf0d4                         0.010s                   0.010s                  0s                      0s  libgomp.so.1  func@0xf0d4                       [Unknown]    0xf0d4       

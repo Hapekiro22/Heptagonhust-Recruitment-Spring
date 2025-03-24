@@ -1,0 +1,12 @@
+Addr of buf1 = 0x7f1409cc0010
+Offs of buf1 = 0x7f1409cc0180
+Addr of buf2 = 0x7f1407cbf010
+Offs of buf2 = 0x7f1407cbf1c0
+Addr of buf3 = 0x7f1405cbe010
+Offs of buf3 = 0x7f1405cbe100
+Addr of buf4 = 0x7f1403cbd010
+Offs of buf4 = 0x7f1403cbd140
+Threads #: 16 Pthreads
+Matrix size: 2048
+Using multiply kernel: multiply1
+Execution time = 3.069 seconds

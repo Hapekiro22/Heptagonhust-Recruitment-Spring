@@ -1,0 +1,46 @@
+Elapsed Time: 0.880s
+    CPU Time: 3.450s
+        Effective Time: 3.450s
+        Spin Time: 0s
+        Overhead Time: 0s
+    Total Thread Count: 64
+    Paused Time: 0s
+
+Top Hotspots
+Function                          Module    CPU Time  % of CPU Time(%)
+--------------------------------  --------  --------  ----------------
+output_unpacking_store._omp_fn.0  winograd    0.730s             21.2%
+output_transform._omp_fn.0        winograd    0.700s             20.3%
+sgemm._omp_fn.0                   winograd    0.625s             18.1%
+image_transform._omp_fn.0         winograd    0.550s             15.9%
+image_packing._omp_fn.0           winograd    0.480s             13.9%
+[Others]                          N/A         0.365s             10.6%
+Effective CPU Utilization: 8.1%
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Average Effective CPU Utilization: 5.186 out of 64
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/small.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 4.0 MB 
+    Collection start time: 15:05:05 24/03/2025 UTC
+    Collection stop time: 15:05:06 24/03/2025 UTC
+    Collector Type: Driverless Perf per-process counting,User-mode sampling and tracing
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
