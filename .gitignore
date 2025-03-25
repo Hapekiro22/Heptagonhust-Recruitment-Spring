@@ -3,9 +3,7 @@ winograd.exe
 
 .vscode/
 
-Relevant Data/
+vtune_results/
 
-Vtune_Results-Data_Group/
-
-Result/
+result_data/
 
