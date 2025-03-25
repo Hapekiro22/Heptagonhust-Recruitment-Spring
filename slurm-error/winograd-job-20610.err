@@ -1,0 +1,40 @@
+./winograd: error while loading shared libraries: libcudart.so.11.0: cannot open shared object file: No such file or directory
+
+ Performance counter stats for './winograd conf/small.conf':
+
+              0.43 msec task-clock                #    0.269 CPUs utilized          
+                 3      context-switches          #    6.920 K/sec                  
+                 0      cpu-migrations            #    0.000 /sec                   
+                20      page-faults               #   46.132 K/sec                  
+           866,863      cycles                    #    1.999 GHz                    
+         1,301,278      instructions              #    1.50  insn per cycle         
+           258,470      branches                  #  596.184 M/sec                  
+             3,836      branch-misses             #    1.48% of all branches        
+         4,334,315      slots                     #    9.997 G/sec                  
+         1,444,771      topdown-retiring          #     33.3% retiring              
+           373,940      topdown-bad-spec          #      8.6% bad speculation       
+         1,767,720      topdown-fe-bound          #     40.7% frontend bound        
+           753,058      topdown-be-bound          #     17.4% backend bound         
+           347,122      L1-dcache-loads           #  800.667 M/sec                  
+            10,077      L1-dcache-load-misses     #    2.90% of all L1-dcache accesses
+             1,283      LLC-loads                 #    2.959 M/sec                  
+               620      LLC-load-misses           #   48.32% of all LL-cache accesses
+   <not supported>      L1-icache-loads                                             
+     <not counted>      L1-icache-load-misses                                         (0.00%)
+     <not counted>      dTLB-loads                                                    (0.00%)
+     <not counted>      dTLB-load-misses                                              (0.00%)
+   <not supported>      iTLB-loads                                                  
+     <not counted>      iTLB-load-misses                                              (0.00%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       0.001613582 seconds time elapsed
+
+       0.000935000 seconds user
+       0.000000000 seconds sys
+
+
+Some events weren't counted. Try disabling the NMI watchdog:
+	echo 0 > /proc/sys/kernel/nmi_watchdog
+	perf stat ...
+	echo 1 > /proc/sys/kernel/nmi_watchdog

@@ -5,17 +5,20 @@
 #SBATCH -c 64
 #SBATCH --exclusive
 #SBATCH --exclude hepnode0
+#SBATCH --gres=gpu:1
 
 # Note: How to run this script on slurm: `sbatch ./run.sh'.
 # Note: see `man sbatch' for more options.
 
 # Note: Manual control number of omp threads
-export OMP_NUN_THREADS=64
+export OMP_NUM_THREADS=64
 
 # Note: numactl - Control NUMA policy for processes or shared memory, see `man numactl'.`
 # Note: perf-stat - Run a command and gather performance counter statistics, see `man perf stat'.
 
-echo "Parameters: [version:vx.x.x] [input_config(0/1)]"
+# "Parameters: [version:vx.x.x] [input_config(0/1)]"
+
+source ./env.sh
 
 directory=result_data
 version=$1
@@ -35,3 +38,4 @@ fi
 
 
 numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 
+#numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
