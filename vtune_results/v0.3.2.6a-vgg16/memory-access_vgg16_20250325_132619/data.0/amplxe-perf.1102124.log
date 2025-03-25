@@ -1,0 +1,67 @@
+Using CPUID GenuineIntel-6-6A-6
+DEBUGINFOD_URLS=
+Compression enabled, disabling build id collection at the end of the session.
+nr_cblocks: 0
+affinity: SYS
+mmap flush: 1
+comp level: 1
+Problems creating module maps, continuing anyway...
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+mmap size 528384B
+Control descriptor is not initialized
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+couldn't open /proc/1/task/1/maps
+couldn't open /proc/1150/task/1150/maps
+couldn't open /proc/1185/task/1185/maps
+couldn't open /proc/1193/task/1193/maps
+couldn't open /proc/1546/task/1546/maps
+couldn't open /proc/1653/task/1653/maps
+couldn't open /proc/1661/task/1661/maps
+couldn't open /proc/1819/task/1819/maps
+couldn't open /proc/1852/task/1852/maps
+couldn't open /proc/1856/task/1856/maps
+couldn't open /proc/1963/task/1963/maps
+couldn't open /proc/2004/task/2004/maps
+couldn't open /proc/2008/task/2008/maps
+couldn't open /proc/2010/task/2010/maps
+couldn't open /proc/2013/task/2013/maps
+couldn't open /proc/2015/task/2015/maps
+couldn't open /proc/2016/task/2016/maps
+couldn't open /proc/2026/task/2026/maps
+couldn't open /proc/2029/task/2029/maps
+couldn't open /proc/2031/task/2031/maps
+couldn't open /proc/2034/task/2034/maps
+couldn't open /proc/2041/task/2041/maps
+couldn't open /proc/2084/task/2084/maps
+couldn't open /proc/2120/task/2120/maps
+couldn't open /proc/2130/task/2130/maps
+couldn't open /proc/2161/task/2161/maps
+couldn't open /proc/2174/task/2174/maps
+couldn't open /proc/2188/task/2188/maps
+couldn't open /proc/2195/task/2195/maps
+couldn't open /proc/4230/task/4230/maps
+couldn't open /proc/4234/task/4234/maps
+couldn't open /proc/5114/task/5114/maps
+couldn't open /proc/5116/task/5116/maps
+couldn't open /proc/12719/task/12719/maps
+couldn't open /proc/13494/task/13494/maps
+couldn't open /proc/1101083/task/1101083/maps
+couldn't open /proc/1101087/task/1101087/maps
+couldn't open /proc/1101089/task/1101089/maps
+
+1102125:perf-sync:ready:SYS=2935361227407466
+[ perf record: Woken up 1 times to write data ]
+failed to write feature HYBRID_TOPOLOGY
+[ perf record: Captured and wrote 0.426 MB /tmp/amplxe-tmp-lyt/amplxe-res-1102107-5857399857380393/data.0/temp.dryrun.perf, compressed (original 0.027 MB, ratio is 6.929) ]

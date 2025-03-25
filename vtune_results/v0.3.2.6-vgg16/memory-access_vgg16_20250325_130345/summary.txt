@@ -1,0 +1,63 @@
+Elapsed Time: 53.357s
+    CPU Time: 273.135s
+    Memory Bound: 100.0% of Pipeline Slots
+     | The metric value is high. This may indicate that a significant fraction
+     | of execution pipeline slots could be stalled due to demand memory load
+     | and stores. Explore the metric breakdown by memory hierarchy, memory
+     | bandwidth information, and correlation by memory objects.
+     |
+        L1 Bound: 14.9% of Clockticks
+         | This metric shows how often machine was stalled without missing the
+         | L1 data cache. The L1 cache typically has the shortest latency.
+         | However, in certain cases like loads blocked on older stores, a load
+         | might suffer a high latency even though it is being satisfied by the
+         | L1.
+         |
+        L2 Bound: 5.2% of Clockticks
+         | This metric shows how often machine was stalled on L2 cache. Avoiding
+         | cache misses (L1 misses/L2 hits) will improve the latency and
+         | increase performance.
+         |
+        L3 Bound: 2.1% of Clockticks
+        DRAM Bound: 1.4% of Clockticks
+            DRAM Bandwidth Bound: 0.4% of Elapsed Time
+        Store Bound: 9.1% of Clockticks
+        NUMA: % of Remote Accesses: 0.0%
+        UPI Utilization Bound: 0.0% of Elapsed Time
+    Loads: 204,589,365,005
+    Stores: 38,306,180,131
+    LLC Miss Count: 94,152,589
+        Local DRAM Access Count: 83,146,218
+        Remote DRAM Access Count: 0
+        Remote Cache Access Count: 0
+    Total Thread Count: 3,138
+    Paused Time: 0s
+
+Bandwidth Utilization
+Bandwidth Domain                  Platform Maximum  Observed Maximum  Average  % of Elapsed Time with High BW Utilization(%)
+--------------------------------  ----------------  ----------------  -------  ---------------------------------------------
+DRAM, GB/sec                      180                         93.200    5.575                                           0.0%
+DRAM Single-Package, GB/sec       90                          93.000    6.261                                           0.4%
+UPI Utilization Single-link, (%)  100                          2.300    0.007                                           0.0%
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/vgg16.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 309.2 MB 
+    Collection start time: 05:04:32 25/03/2025 UTC
+    Collection stop time: 05:05:25 25/03/2025 UTC
+    Collector Type: Driverless Perf system-wide sampling
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        Max DRAM Single-Package Bandwidth: 90.000 GB/s
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.

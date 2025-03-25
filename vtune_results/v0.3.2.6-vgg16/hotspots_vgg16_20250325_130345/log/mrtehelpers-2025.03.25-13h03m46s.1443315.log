@@ -1,0 +1,3 @@
+120 [139624831772224] INFO mrtehelpers.mrteenv <> - Product libs directory: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64
+120 [139624831772224] INFO mrtehelpers.mrteenv <> - File mask: amplxe_samplingmrte_clrprof*
+135 [139624831772224] INFO mrtehelpers.mrteenv <> - File name: libamplxe_samplingmrte_clrprof_1.0.so

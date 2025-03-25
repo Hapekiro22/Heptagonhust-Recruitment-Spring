@@ -29,10 +29,12 @@ fi
 if [ "$2" == "1" ]; then
     CONFIG_FILE="conf/vgg16.conf"
     TEST_NAME="vgg16"
+    TAG="-vgg16"
     echo "使用大测试集 (VGG16)"
 else
     CONFIG_FILE="conf/small.conf"
     TEST_NAME="small"
+    TAG="-small"
     echo "使用小测试集 (Small)"
 fi
 
@@ -44,7 +46,7 @@ else
 fi
 
 # 创建基于版本的结果目录
-BASE_RESULT_DIR="vtune_results/$VERSION"
+BASE_RESULT_DIR="vtune_results/$VERSION-$TEST_NAME"
 mkdir -p "$BASE_RESULT_DIR"
 
 # 加载 VTune 环境

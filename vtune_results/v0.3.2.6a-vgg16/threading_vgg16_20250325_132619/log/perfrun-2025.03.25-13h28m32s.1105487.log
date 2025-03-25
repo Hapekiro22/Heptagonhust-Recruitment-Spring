@@ -1,0 +1,139 @@
+10 [140517495287104] INFO perfrun.launcher <> - Launcher main begin
+12 [140517495287104] INFO perfrun.launcher <> - MessageCatalogInit finished
+12 [140517495287104] INFO perfrun.launcher <> - Launcher instance created
+12 [140517495287104] INFO perfrun.launcher <> - argc = 7; cmdline = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/amplxe-runss --ui-output-format xml --ui-output-fd 5 --option-file /data/home/lyt/2025-Spring-recruitment/Heptagonhust-Recruitment-Spring/vtune_results/v0.3.2.6a-vgg16/threading_vgg16_20250325_132619/config/runss.options 
+74 [140517495287104] INFO perfrun.launcher <> - create msngr2::ICliToolContext
+74 [140517495287104] INFO perfrun.launcher <> - create file finder object
+74 [140517495287104] INFO perfrun.launcher <> - create a result directory: pattern = /data/home/lyt/2025-Spring-recruitment/Heptagonhust-Recruitment-Spring/vtune_results/v0.3.2.6a-vgg16/threading_vgg16_20250325_132619 pid = 4294967295
+100 [140517495287104] INFO perfrun.sdk <> - checked that the directory /data/home/lyt/2025-Spring-recruitment/Heptagonhust-Recruitment-Spring/vtune_results/v0.3.2.6a-vgg16/threading_vgg16_20250325_132619 is a local directory
+100 [140517495287104] INFO perfrun.sdk <> - the directory /data/home/lyt/2025-Spring-recruitment/Heptagonhust-Recruitment-Spring/vtune_results/v0.3.2.6a-vgg16/threading_vgg16_20250325_132619 is located on a share or its FS ID is unknown 26985
+100 [140517495287104] INFO perfrun.sdk <> - checked that the directory /tmp/amplxe-tmp-lyt is a local directory
+100 [140517495287104] INFO perfrun.sdk <> - the directory /tmp/amplxe-tmp-lyt is a local directory with FS type ID 1481003842
+101 [140517495287104] INFO perfrun.launcher <> - Create a local result directory /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979 due to the user result path /data/home/lyt/2025-Spring-recruitment/Heptagonhust-Recruitment-Spring/vtune_results/v0.3.2.6a-vgg16/threading_vgg16_20250325_132619 is located on a share
+101 [140517495287104] INFO perfrun.launcher <> - create data directory = /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0
+101 [140517495287104] INFO perfrun.launcher <> - create data directory = /data/home/lyt/2025-Spring-recruitment/Heptagonhust-Recruitment-Spring/vtune_results/v0.3.2.6a-vgg16/threading_vgg16_20250325_132619/data.0
+102 [140517495287104] INFO perfrun.launcher <> - Creating the master collection flag
+103 [140517495287104] INFO perfrun.launcher <> - Done creating the master collection flag
+136 [140517344011840] INFO perfrun.launcher <> - plugin [remoteplug] was disabled because it doesn't support the given collection type.
+136 [140517344011840] INFO perfrun.sdk <> - Allocating TMU :/tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0/systemcollector-1105487-hepnode3.sc
+136 [140517344011840] INFO perfrun.system <> - Tpss based collection
+136 [140517344011840] INFO perfrun.launcher <> - plugin [ptracecollector] was disabled because it doesn't support the given collection type.
+136 [140517344011840] INFO perfrun.launcher <> - plugin [gpu] was disabled because it doesn't support the given collection type.
+136 [140517344011840] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+136 [140517344011840] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+136 [140517344011840] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+136 [140517344011840] INFO perfrun.mrte <> - system-wide mode is 0
+136 [140517344011840] INFO perfrun.mrte <> - Getting  mrte profiling environment ...
+150 [140517344011840] INFO perfrun.mrte <> - INTEL_MRTE_DATA_DIR=/tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0
+150 [140517344011840] INFO perfrun.mrte <> - INTEL_MRTE_HOST_NAME=hepnode3
+150 [140517344011840] INFO perfrun.mrte <> - JAVA_TOOL_OPTIONS=-agentlib:amplxe_tpssmrte_javaprof_1.0 -Dsun.boot.library.path=/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime
+150 [140517344011840] INFO perfrun.mrte <> - LD_LIBRARY_PATH=/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime
+150 [140517344011840] INFO perfrun.mrte <> - CORECLR_ENABLE_PROFILING=1
+150 [140517344011840] INFO perfrun.mrte <> - CORECLR_PROFILER={AA5E4821-E3B1-479c-B7FF-5AD047D22CED}
+150 [140517344011840] INFO perfrun.mrte <> - CORECLR_PROFILER_PATH=/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/libamplxe_samplingmrte_clrprof_1.0.so
+150 [140517344011840] INFO perfrun.mrte <> - INTEL_MRTE_PROFILER_MODE=mixed
+150 [140517344011840] INFO perfrun.mrte <> - Data directory: /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0
+150 [140517344011840] INFO perfrun.mrte <> - Mrte plugin is initialized
+150 [140517344011840] INFO perfrun.launcher <> - plugin [emon] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [cuscol] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [stdsrc] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [sep] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [vtsspp] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [perf] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [aoclprofile] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.tpss <> - initialize tpss controller
+150 [140517344011840] INFO perfrun.tpss <> - configure collection mode: value = cpu:counters:nostack
+150 [140517344011840] INFO perfrun.tpss <> - configure collection mode: value = cpu:stack
+150 [140517344011840] INFO perfrun.tpss <> - configure collection mode: value = threading:stack
+150 [140517344011840] INFO perfrun.tpss <> - configure collection mode: value = waiting:stack
+150 [140517344011840] INFO perfrun.tpss <> - configure collection mode: value = io:stack
+150 [140517344011840] INFO perfrun.tpss <> - default obj-size-min=1024
+150 [140517344011840] INFO perfrun.tpss <> - default hash-table-size=0
+150 [140517344011840] INFO perfrun.launcher <> - plugin [media] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [parallelfs] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [power] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [ipmwatch] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [os_counters] was disabled because it doesn't support the given collection type.
+150 [140517344011840] INFO perfrun.launcher <> - plugin [l0_metrics] was disabled because it doesn't support the given collection type.
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: LD_LIBRARY_PATH = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_LIBITTNOTIFY32 = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime/libittnotify_collector.so
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_LIBITTNOTIFY64 = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime/libittnotify_collector.so
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_ITTNOTIFY_GROUPS = 
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_JIT_PROFILER32 = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime/libittnotify_collector.so
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_JIT_PROFILER64 = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime/libittnotify_collector.so
+150 [140517495287104] INFO perfrun.launcher <> - set environment variable: OMP_TOOL_LIBRARIES = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime/libittnotify_collector.so:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime/libittnotify_collector.so
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: ENABLE_JITPROFILING = 1
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: CL_CONFIG_USE_VTUNE = True
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_MRTE_DATA_DIR = /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_MRTE_HOST_NAME = hepnode3
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: JAVA_TOOL_OPTIONS = -agentlib:amplxe_tpssmrte_javaprof_1.0 -Dsun.boot.library.path=/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: LD_LIBRARY_PATH = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/runtime:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/runtime
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: CORECLR_ENABLE_PROFILING = 1
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: CORECLR_PROFILER = {AA5E4821-E3B1-479c-B7FF-5AD047D22CED}
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: CORECLR_PROFILER_PATH = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/libamplxe_samplingmrte_clrprof_1.0.so
+151 [140517495287104] INFO perfrun.launcher <> - set environment variable: INTEL_MRTE_PROFILER_MODE = mixed
+151 [140517495287104] INFO perfrun.launcher <> - RpcServer: run RPC server to handle requests
+152 [140517495287104] INFO perfrun.launcher <> - Launcher: command line to start before modification = numactl --cpunodebind=0 --membind=0 ./winograd conf/vgg16.conf
+152 [140517495287104] INFO perfrun.launcher <> - Launcher: command line to start after modification = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/pin -error_file /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0/pinerr.tpsslog -detach_reattach -follow_execv -tool_load_option deepbind -t64 /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib64/libtpsstool.so -t /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/lib32/libtpsstool.so -server_name tpss_ipc.1105487 -prd_dir /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0 -- numactl --cpunodebind=0 --membind=0 ./winograd conf/vgg16.conf
+152 [140517495287104] INFO perfrun.launcher <> - ProcessCreator object was created
+153 [140517495287104] INFO perfrun.launcher <> - Launcher: the process was started in suspend mode
+176 [140517344011840] WARN perfrun.system <> - Could not do anything with /sys/kernel/debug/kvm: boost::filesystem::status: Permission denied: "/sys/kernel/debug/kvm", at file: vcs/perfrun1/plugins/system/src/trace_writer.cpp:787
+176 [140517344011840] WARN perfrun.system <> - Folder "/var/run/libvirt/qemu/"doesn't exist, at file: vcs/perfrun1/plugins/system/src/trace_writer.cpp:800
+182 [140517344011840] INFO perfrun.sdk <> - runCmd: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/sep -platform-info
+182 [140517344011840] INFO perfrun.sdk <> - runCmd started PID 1105493
+194 [140517344011840] WARN perfrun.sdk <> - SEP driver is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:920
+194 [140517344011840] INFO perfrun.sdk <> - runCmd: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/amplxe-perf stat --iostat=list
+195 [140517344011840] INFO perfrun.sdk <> - runCmd started PID 1105494
+715 [140517344011840] INFO perfrun.sdk <> - UPI platform topology is not supported on this platform via perf
+715 [140517344011840] INFO perfrun.sdk <> - Mapped device: Display controller: NVIDIA Corporation Device 0x26b5 0000:4b:00.0
+715 [140517344011840] INFO perfrun.sdk <> - Mapped device: NVMe SSD Controller PM9A1/PM9A3/980PRO General DC NVMe PM9A3 0000:65:00.0
+716 [140517344011840] INFO perfrun.sdk <> - Mapped device: NVMe SSD Controller PM9A1/PM9A3/980PRO General DC NVMe PM9A3 0000:66:00.0
+716 [140517344011840] INFO perfrun.sdk <> - Mapped device: AST1150 PCI-to-PCI Bridge 0000:03:00.0
+716 [140517344011840] INFO perfrun.sdk <> - Mapped device: ASPEED Graphics Family 0000:04:00.0
+717 [140517344011840] INFO perfrun.sdk <> - Mapped device: Display controller: NVIDIA Corporation Device 0x26b5 0000:b1:00.0
+717 [140517344011840] INFO perfrun.sdk <> - Mapped device: MT27700 Family [ConnectX-4] 0000:ca:00.0
+717 [140517344011840] INFO perfrun.sdk <> - Mapped device: I350 Gigabit Network Connection F014I350 0000:e3:00.0
+717 [140517344011840] INFO perfrun.sdk <> - Mapped device: I350 Gigabit Network Connection F014I350 0000:e3:00.1
+717 [140517344011840] INFO perfrun.sdk <> - Mapped device: I350 Gigabit Network Connection F014I350 0000:e3:00.2
+717 [140517344011840] INFO perfrun.sdk <> - Mapped device: I350 Gigabit Network Connection F014I350 0000:e3:00.3
+723 [140517344011840] INFO perfrun.sdk <> - runCmd: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/sep -platform-info
+724 [140517344011840] INFO perfrun.sdk <> - runCmd started PID 1105495
+737 [140517344011840] WARN perfrun.sdk <> - SEP driver is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:920
+737 [140517344011840] INFO perfrun.sdk <> - runCmd: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/sep -platform-info
+738 [140517344011840] INFO perfrun.sdk <> - runCmd started PID 1105496
+752 [140517344011840] WARN perfrun.sdk <> - SEP driver is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:920
+752 [140517344011840] INFO perfrun.sdk <> - runCmd: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/amplxe-perf stat --iostat=list
+753 [140517344011840] INFO perfrun.sdk <> - runCmd started PID 1105497
+1277 [140517344011840] INFO perfrun.sdk <> - UPI platform topology is not supported on this platform via perf
+1278 [140517344011840] WARN perfrun.sdk <> - Failed to find xl binary on any of the system paths: /bin, /sbin, /usr/bin, /usr/sbin., at file: vcs/perfrun1/sdk/src/utils.cpp:204
+1278 [140517344011840] WARN perfrun.system <> - Could not start ContainerMapping collector, at file: vcs/perfrun1/plugins/system/src/controller.cpp:448
+1287 [140517344011840] INFO perfrun.vdso <> - Helper runtool '/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin32/amplxe-runss -dump-vdso -r /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979 --tmp-dir /tmp/amplxe-tmp-lyt' returned 1
+1416 [140517344011840] INFO perfrun.vdso <> - Helper runtool '/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/amplxe-runss -dump-vdso -r /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979 --tmp-dir /tmp/amplxe-tmp-lyt' returned 0
+1416 [140517344011840] INFO perfrun.itt <> - start itt controller for pid #1105492
+1416 [140517344011840] INFO perfrun.tpss <> - start tpss controller for pid #1105492
+1467 [140517495287104] INFO perfrun.launcher <> - Launcher: all plugins were started
+1467 [140517495287104] INFO perfrun.launcher <> - DirectoryMonitor object was created
+1467 [140517495287104] INFO perfrun.launcher <> - DirectoryMonitor: a callback was added
+1467 [140517495287104] INFO perfrun.launcher <> - DirectoryMonitor was started with pingTime = 1000
+1467 [140517495287104] INFO perfrun.launcher <> - DeadlineTimer is going to be constructed
+1467 [140517495287104] INFO perfrun.launcher <> - DeadlineTimer: a callback was added
+1469 [140517495287104] INFO perfrun.launcher <> - Launcher: resume the profiled application and  wait its termination or stop command
+22721 [140517184321088] ERROR perfrun.launcher <> - Messenger::say: Assertion failed: thread_manager_impl:473: (blocked == tpss_tls_op_err_ok) : . Please contact the technical support. 
+22904 [140517495287104] INFO perfrun.launcher <> - Launcher: the profiled application was terminated  with exit code = 139
+22904 [140517344011840] WARN perfrun.launcher <> - can't send #0 signal to the process with pid #1105492 - , at file: vcs/perfrun1/launcher/src/signal_handler_lin.cpp:53
+22905 [140517344011840] WARN perfrun.launcher <> - can't send #0 signal to the process with pid #1105492 - , at file: vcs/perfrun1/launcher/src/signal_handler_lin.cpp:53
+22983 [140517344011840] INFO perfrun.itt <> - detach itt controller
+22983 [140517344011840] INFO perfrun.itt <> - detach itt controller done
+22983 [140517344011840] INFO perfrun.tpss <> - stop tpss controller
+22986 [140517344011840] INFO perfrun.sdk <> - De-allocating TMU: /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0/systemcollector-1105487-hepnode3.sc
+22986 [140517344011840] INFO perfrun.system <> - closed the system trace file: /tmp/amplxe-tmp-lyt/amplxe-res-1105487-5857589236272979/data.0/systemcollector-1105487-hepnode3.sc
+22986 [140517495287104] INFO perfrun.launcher <> - Launcher: all plugins were stopped.
+22986 [140517495287104] INFO perfrun.launcher <> - DeadlineTimer is going to be destroyed
+22986 [140517495287104] INFO perfrun.launcher <> - DeadlineTimer was destroyed
+22986 [140517495287104] INFO perfrun.launcher <> - DirectoryMonitor object was destroyed
+22986 [140517495287104] WARN perfrun.launcher <> - Stop command is ignored because it is received when collection is already stopped, at file: vcs/perfrun1/launcher/src/command_handler.cpp:226
+23543 [140517495287104] INFO perfrun.launcher <> - Application exit code: 139
+23543 [140517495287104] INFO perfrun.launcher <> - Exit code: 4

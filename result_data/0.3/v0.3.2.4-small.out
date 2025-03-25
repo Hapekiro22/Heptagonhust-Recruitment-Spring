@@ -1,0 +1,6 @@
+Layer 0 :  Elapse time 17.443339 ms. (    0.00 GFlops) 
+Layer 1 :  Elapse time 11.806647 ms. (    0.01 GFlops) 
+Layer 2 :  Elapse time 17.190695 ms. (    0.14 GFlops) 
+Layer 3 :  Elapse time 12.920698 ms. (   13.15 GFlops) 
+Layer 4 :  Elapse time 73.691368 ms. (   73.76 GFlops) 
+Total elapse time: 0.133053. (   42.15 GFlops) 

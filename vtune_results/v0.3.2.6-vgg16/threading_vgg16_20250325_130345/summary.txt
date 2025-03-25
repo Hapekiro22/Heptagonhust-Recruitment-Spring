@@ -1,0 +1,48 @@
+Elapsed Time: 61.176s
+    Paused Time: 0s
+Effective CPU Utilization: 9.3% (5.947 out of 64 logical CPUs)
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Total Thread Count: 3,137
+        Thread Oversubscription: 0s (0.0% of CPU Time)
+    Wait Time with poor CPU Utilization: 5.210s (100.0% of Wait Time)
+
+        Top Waiting Objects
+        Sync Object                                                                    Wait Time with poor CPU Utilization  (% from Object Wait Time)(%)  Wait Count
+        -----------------------------------------------------------------------------  -----------------------------------  ----------------------------  ----------
+        Thread Pool                                                                                                 5.209s                        100.0%       2,591
+        Stream conf/vgg16.conf 0x4e2c394c                                                                           0.000s                        100.0%           1
+        Stream /proc/self/status 0x3791b3a6                                                                         0.000s                        100.0%           1
+        Stream /sys/devices/system/cpu/cpu0/topology/core_siblings_list 0x69712aff                                  0.000s                        100.0%           1
+        Stream /sys/devices/system/cpu/cpu15/topology/thread_siblings_list 0x8b73d7cf                               0.000s                        100.0%           1
+        [Others]                                                                                                    0.000s                        100.0%          21
+    Spin and Overhead Time: 0s (0.0% of CPU Time)
+
+        Top Functions with Spin or Overhead Time
+        Function  Module  Spin and Overhead Time  (% from CPU Time)(%)
+        --------  ------  ----------------------  --------------------
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/vgg16.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 17.7 MB 
+    Collection start time: 05:05:50 25/03/2025 UTC
+    Collection stop time: 05:06:51 25/03/2025 UTC
+    Collector Type: User-mode sampling and tracing
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.

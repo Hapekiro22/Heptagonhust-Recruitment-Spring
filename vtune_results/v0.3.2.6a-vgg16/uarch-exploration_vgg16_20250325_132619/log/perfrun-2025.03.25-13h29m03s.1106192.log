@@ -1,0 +1,35 @@
+10 [139666343266176] INFO perfrun.launcher <> - Launcher main begin
+12 [139666343266176] INFO perfrun.launcher <> - MessageCatalogInit finished
+12 [139666343266176] INFO perfrun.launcher <> - Launcher instance created
+12 [139666343266176] INFO perfrun.launcher <> - argc = 6; cmdline = /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64/amplxe-runss -dump-vdso -r /tmp/amplxe-tmp-lyt/amplxe-res-1106173-5857645143458191 --tmp-dir /tmp/amplxe-tmp-lyt 
+67 [139666343266176] INFO perfrun.launcher <> - create msngr2::ICliToolContext
+67 [139666343266176] INFO perfrun.launcher <> - create file finder object
+94 [139666191803968] INFO perfrun.launcher <> - plugin [remoteplug] was disabled because it doesn't support the given collection type.
+95 [139666191803968] INFO perfrun.launcher <> - plugin [system] was disabled because it doesn't support the given collection type.
+95 [139666191803968] INFO perfrun.vdso <> - dumping [vdso] pseudomodule
+98 [139666191803968] INFO perfrun.launcher <> - plugin [itt] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [ptracecollector] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [gpu] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [mrte] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [emon] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [cuscol] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [stdsrc] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [sep] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [vtsspp] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [perf] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [aoclprofile] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [tpss] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [media] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [parallelfs] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [power] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [ipmwatch] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [os_counters] was disabled because it doesn't support the given collection type.
+98 [139666191803968] INFO perfrun.launcher <> - plugin [l0_metrics] was disabled because it doesn't support the given collection type.
+98 [139666343266176] INFO perfrun.launcher <> - Application exit code: 0
+98 [139666343266176] INFO perfrun.launcher <> - Exit code: 0

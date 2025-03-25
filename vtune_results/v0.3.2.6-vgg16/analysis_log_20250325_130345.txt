@@ -1,0 +1,574 @@
+===============================================
+ VTune 分析报告 - 版本: v0.3.2.6 - 测试集: vgg16
+ 开始时间: Tue Mar 25 01:03:45 PM CST 2025
+===============================================
+
+
+
+--- 开始 hotspots 分析 Tue Mar 25 01:03:45 PM CST 2025 ---
+收集数据中，请等待...
+Elapsed Time: 21.459s
+
+Top Hotspots
+Function  Module  CPU Time  % of CPU Time(%)
+--------  ------  --------  ----------------
+Effective CPU Utilization: 10.1%
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Average Effective CPU Utilization: 6.436 out of 64
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/vgg16.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 4.1 MB 
+    Collection start time: 05:03:49 25/03/2025 UTC
+    Collection stop time: 05:04:10 25/03/2025 UTC
+    Collector Type: Driverless Perf per-process counting,User-mode sampling and tracing
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+错误: hotspots 分析失败
+
+
+
+--- 开始 memory-access 分析 Tue Mar 25 01:04:13 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 1165.791988 ms. (    9.35 GFlops) 
+Layer 1 :  Elapse time 4124.894063 ms. (   56.38 GFlops) 
+Layer 2 :  Elapse time 1301.584005 ms. (   87.73 GFlops) 
+Layer 3 :  Elapse time 2194.276333 ms. (  104.08 GFlops) 
+Layer 4 :  Elapse time 709.367355 ms. (  155.17 GFlops) 
+Layer 5 :  Elapse time 1375.305971 ms. (  160.07 GFlops) 
+Layer 6 :  Elapse time 1370.586316 ms. (  160.63 GFlops) 
+Layer 7 :  Elapse time 1369.915644 ms. (  160.70 GFlops) 
+Layer 8 :  Elapse time 508.080324 ms. (  200.90 GFlops) 
+Layer 9 :  Elapse time 926.760038 ms. (  220.28 GFlops) 
+Layer 10:  Elapse time 928.804000 ms. (  219.79 GFlops) 
+Layer 11:  Elapse time 924.856345 ms. (  220.73 GFlops) 
+Layer 12:  Elapse time 179.262956 ms. (  242.59 GFlops) 
+Layer 13:  Elapse time 178.675652 ms. (  243.38 GFlops) 
+Layer 14:  Elapse time 186.487039 ms. (  233.19 GFlops) 
+Layer 15:  Elapse time 174.799999 ms. (  248.78 GFlops) 
+Total elapse time: 17.619448. (  127.42 GFlops) 
+Elapsed Time: 53.357s
+    CPU Time: 273.135s
+    Memory Bound: 100.0% of Pipeline Slots
+     | The metric value is high. This may indicate that a significant fraction
+     | of execution pipeline slots could be stalled due to demand memory load
+     | and stores. Explore the metric breakdown by memory hierarchy, memory
+     | bandwidth information, and correlation by memory objects.
+     |
+        L1 Bound: 14.9% of Clockticks
+         | This metric shows how often machine was stalled without missing the
+         | L1 data cache. The L1 cache typically has the shortest latency.
+         | However, in certain cases like loads blocked on older stores, a load
+         | might suffer a high latency even though it is being satisfied by the
+         | L1.
+         |
+        L2 Bound: 5.2% of Clockticks
+         | This metric shows how often machine was stalled on L2 cache. Avoiding
+         | cache misses (L1 misses/L2 hits) will improve the latency and
+         | increase performance.
+         |
+        L3 Bound: 2.1% of Clockticks
+        DRAM Bound: 1.4% of Clockticks
+            DRAM Bandwidth Bound: 0.4% of Elapsed Time
+        Store Bound: 9.1% of Clockticks
+        NUMA: % of Remote Accesses: 0.0%
+        UPI Utilization Bound: 0.0% of Elapsed Time
+    Loads: 204,589,365,005
+    Stores: 38,306,180,131
+    LLC Miss Count: 94,152,589
+        Local DRAM Access Count: 83,146,218
+        Remote DRAM Access Count: 0
+        Remote Cache Access Count: 0
+    Total Thread Count: 3,138
+    Paused Time: 0s
+
+Bandwidth Utilization
+Bandwidth Domain                  Platform Maximum  Observed Maximum  Average  % of Elapsed Time with High BW Utilization(%)
+--------------------------------  ----------------  ----------------  -------  ---------------------------------------------
+DRAM, GB/sec                      180                         93.200    5.575                                           0.0%
+DRAM Single-Package, GB/sec       90                          93.000    6.261                                           0.4%
+UPI Utilization Single-link, (%)  100                          2.300    0.007                                           0.0%
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/vgg16.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 309.2 MB 
+    Collection start time: 05:04:32 25/03/2025 UTC
+    Collection stop time: 05:05:25 25/03/2025 UTC
+    Collector Type: Driverless Perf system-wide sampling
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        Max DRAM Single-Package Bandwidth: 90.000 GB/s
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: memory-access
+结果保存在: vtune_results/v0.3.2.6-vgg16/memory-access_vgg16_20250325_130345
+
+
+
+--- 开始 threading 分析 Tue Mar 25 01:05:47 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 1331.160625 ms. (    8.19 GFlops) 
+Layer 1 :  Elapse time 4197.137276 ms. (   55.41 GFlops) 
+Layer 2 :  Elapse time 1416.606347 ms. (   80.61 GFlops) 
+Layer 3 :  Elapse time 2320.595980 ms. (   98.41 GFlops) 
+Layer 4 :  Elapse time 848.927657 ms. (  129.66 GFlops) 
+Layer 5 :  Elapse time 1544.037660 ms. (  142.58 GFlops) 
+Layer 6 :  Elapse time 1570.318302 ms. (  140.19 GFlops) 
+Layer 7 :  Elapse time 1512.384653 ms. (  145.57 GFlops) 
+Layer 8 :  Elapse time 697.922945 ms. (  146.25 GFlops) 
+Layer 9 :  Elapse time 1114.872297 ms. (  183.11 GFlops) 
+Layer 10:  Elapse time 1090.119044 ms. (  187.27 GFlops) 
+Layer 11:  Elapse time 1155.439933 ms. (  176.68 GFlops) 
+Layer 12:  Elapse time 322.460651 ms. (  134.86 GFlops) 
+Layer 13:  Elapse time 313.958645 ms. (  138.51 GFlops) 
+Layer 14:  Elapse time 349.249681 ms. (  124.51 GFlops) 
+Layer 15:  Elapse time 320.275307 ms. (  135.78 GFlops) 
+Total elapse time: 20.105467. (  111.66 GFlops) 
+Elapsed Time: 61.176s
+    Paused Time: 0s
+Effective CPU Utilization: 9.3% (5.947 out of 64 logical CPUs)
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Total Thread Count: 3,137
+        Thread Oversubscription: 0s (0.0% of CPU Time)
+    Wait Time with poor CPU Utilization: 5.210s (100.0% of Wait Time)
+
+        Top Waiting Objects
+        Sync Object                                                                    Wait Time with poor CPU Utilization  (% from Object Wait Time)(%)  Wait Count
+        -----------------------------------------------------------------------------  -----------------------------------  ----------------------------  ----------
+        Thread Pool                                                                                                 5.209s                        100.0%       2,591
+        Stream conf/vgg16.conf 0x4e2c394c                                                                           0.000s                        100.0%           1
+        Stream /proc/self/status 0x3791b3a6                                                                         0.000s                        100.0%           1
+        Stream /sys/devices/system/cpu/cpu0/topology/core_siblings_list 0x69712aff                                  0.000s                        100.0%           1
+        Stream /sys/devices/system/cpu/cpu15/topology/thread_siblings_list 0x8b73d7cf                               0.000s                        100.0%           1
+        [Others]                                                                                                    0.000s                        100.0%          21
+    Spin and Overhead Time: 0s (0.0% of CPU Time)
+
+        Top Functions with Spin or Overhead Time
+        Function  Module  Spin and Overhead Time  (% from CPU Time)(%)
+        --------  ------  ----------------------  --------------------
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/vgg16.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 17.7 MB 
+    Collection start time: 05:05:50 25/03/2025 UTC
+    Collection stop time: 05:06:51 25/03/2025 UTC
+    Collector Type: User-mode sampling and tracing
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: threading
+结果保存在: vtune_results/v0.3.2.6-vgg16/threading_vgg16_20250325_130345
+
+
+
+--- 开始 uarch-exploration 分析 Tue Mar 25 01:07:14 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 1166.388035 ms. (    9.35 GFlops) 
+Layer 1 :  Elapse time 4128.911018 ms. (   56.32 GFlops) 
+Layer 2 :  Elapse time 1301.997662 ms. (   87.70 GFlops) 
+Layer 3 :  Elapse time 2190.671047 ms. (  104.25 GFlops) 
+Layer 4 :  Elapse time 730.924050 ms. (  150.60 GFlops) 
+Layer 5 :  Elapse time 1377.448002 ms. (  159.83 GFlops) 
+Layer 6 :  Elapse time 1377.452294 ms. (  159.82 GFlops) 
+Layer 7 :  Elapse time 1373.699347 ms. (  160.26 GFlops) 
+Layer 8 :  Elapse time 506.983995 ms. (  201.33 GFlops) 
+Layer 9 :  Elapse time 927.491029 ms. (  220.10 GFlops) 
+Layer 10:  Elapse time 923.888365 ms. (  220.96 GFlops) 
+Layer 11:  Elapse time 978.285392 ms. (  208.68 GFlops) 
+Layer 12:  Elapse time 182.903687 ms. (  237.76 GFlops) 
+Layer 13:  Elapse time 192.113320 ms. (  226.36 GFlops) 
+Layer 14:  Elapse time 193.479617 ms. (  224.76 GFlops) 
+Layer 15:  Elapse time 181.423664 ms. (  239.70 GFlops) 
+Total elapse time: 17.734061. (  126.59 GFlops) 
+Elapsed Time: 53.717s
+    Clockticks: 945,840,000,000
+    Instructions Retired: 1,457,020,000,000
+    CPI Rate: 0.649
+    Retiring: 100.0% of Pipeline Slots
+     | A high fraction of pipeline slots was utilized by useful work. While the
+     | goal is to make this metric value as big as possible, a high Retiring
+     | value for non-vectorized code could prompt you to consider code
+     | vectorization. Vectorization enables doing more computations without
+     | significantly increasing the number of instructions, thus improving the
+     | performance. Note that this metric value may be highlighted due to
+     | Microcode Sequencer (MS) issue, so the performance can be improved by
+     | avoiding using the MS.
+     |
+        Light Operations: 100.0% of Pipeline Slots
+         | CPU retired light-weight operations (ones which require no more than
+         | one uop) in a significant fraction of cycles. This correlates with
+         | total number of instructions used by the program. Optimum value of
+         | uops-per-instruction ratio is 1. While this is the most desirable
+         | metric, high values can also provide opportunities for performance
+         | optimizations.
+         |
+            FP Arithmetic: 0.0% of uOps
+                FP x87: 0.0% of uOps
+                FP Scalar: 0.0% of uOps
+                FP Vector: 0.0% of uOps
+                    128-bit FP Vector: 1.2% of uOps
+                    256-bit FP Vector: 13.6% of uOps
+                    512-bit FP Vector: 0.0% of uOps
+            Memory Operations: 100.0% of Pipeline Slots
+             | For a significant fraction of pipeline slots the CPU was retiring
+             | memory operations - uops for memory load or store accesses.
+             |
+            Branch Instructions: 49.3% of Pipeline Slots
+             | For a significant fraction of pipeline slots the CPU was retiring
+             | branch instructions.
+             |
+            Nop Instructions: 4.3% of Pipeline Slots
+            Other: 100.0% of Pipeline Slots
+             | This metric represents a non-floating-point (FP) uop fraction the
+             | CPU has executed. If your application has no FP operations, this
+             | is likely to be the biggest fraction.
+             |
+        Heavy Operations: 35.3% of Pipeline Slots
+         | CPU retired heavy-weight operations (instructions that required 2+
+         | uops) in a significant fraction of cycles.
+         |
+            Few Uops Instructions: 21.6% of Pipeline Slots
+             | This metric represents fraction of slots where the CPU was
+             | retiring instructions that that are decoder into two or up to
+             | ([SNB+] four; [ADL+] five) uops. This highly-correlates with the
+             | number of uops in such instructions.
+             |
+            Microcode Sequencer: 13.7% of Pipeline Slots
+             | Issue: A significant fraction of cycles was spent retiring uOps
+             | fetched by the Microcode Sequencer.
+             | 
+             | Tips:
+             | 
+             | 1. Make sure the /arch compiler flags are correct.
+             | 
+             | 2. Check the child Assists metric and, if it is highlighted as an
+             | issue, follow the provided recommendations.
+             | 
+             | Note that this metric value may be highlighted due to MS Switches
+             | issue.
+             |
+                Assists: 0.0% of Pipeline Slots
+                CISC: 13.7% of Pipeline Slots
+                 | For a significant fraction of cycles the CPU retired uops
+                 | originated from CISC (complex instruction set computer)
+                 | instruction. A CISC instruction has multiple uops that are
+                 | required to perform the instruction's functionality as in the
+                 | case of read-modify-write as an example. Since these
+                 | instructions require mutiple uops they may or may not imply
+                 | sub-optimal use of machine resources.
+                 |
+    Front-End Bound: 54.1% of Pipeline Slots
+     | Issue: A significant portion of Pipeline Slots is remaining empty due to
+     | issues in the Front-End.
+     | 
+     | Tips:  Make sure the code working size is not too large, the code layout
+     | does not require too many memory accesses per cycle to get enough
+     | instructions for filling four pipeline slots, or check for microcode
+     | assists.
+     |
+        Front-End Latency: 14.3% of Pipeline Slots
+         | This metric represents a fraction of slots during which CPU was
+         | stalled due to front-end latency issues, such as instruction-cache
+         | misses, ITLB misses or fetch stalls after a branch misprediction. In
+         | such cases, the front-end delivers no uOps.
+         |
+            ICache Misses: 0.0% of Clockticks
+            ITLB Overhead: 0.1% of Clockticks
+            Branch Resteers: 0.4% of Clockticks
+                Mispredicts Resteers: 0.4% of Clockticks
+                Clears Resteers: 0.0% of Clockticks
+                Unknown Branches: 0.0% of Clockticks
+            DSB Switches: 0.5% of Clockticks
+             | Issue: A significant portion of cycles is spent switching from
+             | the DSB to the MITE.  This may happen if a hot code region is too
+             | large to fit into the DSB.
+             | 
+             | Tips: Consider changing code layout (for example, via profile-
+             | guided optimization) to help your hot regions fit into the DSB.
+             | 
+             | See the "Optimization for Decoded ICache" section in the Intel 64
+             | and IA-32 Architectures Optimization Reference Manual.
+             |
+            Length Changing Prefixes: 0.0% of Clockticks
+             | Issue: A significant fraction of cycles was stalled due to Length
+             | Changing Prefixes (LCPs).
+             | 
+             | Tips: To avoid this issue, use proper compiler flags. Intel
+             | Compiler enables these flags by default.
+             | 
+             | See the "Length-Changing Prefixes (LCP)" section in the Intel 64
+             | and IA-32 Architectures Optimization Reference Manual.
+             |
+            MS Switches: 3.7% of Clockticks
+             | Issue: A significant fraction of cycles was stalled due to
+             | switches of uOp delivery to the Microcode Sequencer (MS).
+             | Commonly used instructions are optimized for delivery by the DSB
+             | or MITE pipelines. Certain operations cannot be handled natively
+             | by the execution pipeline, and must be performed by microcode
+             | (small programs injected into the execution stream). Switching to
+             | the MS too often can negatively impact performance. The MS is
+             | designated to deliver long uOp flows required by CISC
+             | instructions like CPUID, or uncommon conditions like Floating
+             | Point Assists when dealing with Denormals. Note that this metric
+             | value may be highlighted due to Microcode Sequencer issue.
+             |
+        Front-End Bandwidth: 39.8% of Pipeline Slots
+         | This metric represents a fraction of slots during which CPU was
+         | stalled due to front-end bandwidth issues, such as inefficiencies in
+         | the instruction decoders or code restrictions for caching in the DSB
+         | (decoded uOps cache). In such cases, the front-end typically delivers
+         | a non-optimal amount of uOps to the back-end.
+         |
+            Front-End Bandwidth MITE: 2.5% of Pipeline Slots
+                Decoder-0 Alone: 0.6% of Pipeline Slots
+                %MITE_4wide: 0.7% of Clockticks
+            Front-End Bandwidth DSB: 15.0% of Pipeline Slots
+             | This metric represents a fraction of cycles during which CPU was
+             | likely limited due to DSB (decoded uop cache) fetch pipeline. For
+             | example, inefficient utilization of the DSB cache structure or
+             | bank conflict when reading from it, are categorized here.
+             |
+            (Info) DSB Coverage: 95.7%
+            (Info) DSB Misses: 100.0% of Pipeline Slots
+             | %DSB_MissesIssueTextAll
+             |
+    Bad Speculation: 0.0% of Pipeline Slots
+        Branch Mispredict: 0.0% of Pipeline Slots
+        Machine Clears: 0.0% of Pipeline Slots
+    Back-End Bound: 100.0% of Pipeline Slots
+     | A significant portion of pipeline slots are remaining empty. When
+     | operations take too long in the back-end, they introduce bubbles in the
+     | pipeline that ultimately cause fewer pipeline slots containing useful
+     | work to be retired per cycle than the machine is capable to support. This
+     | opportunity cost results in slower execution. Long-latency operations
+     | like divides and memory operations can cause this, as can too many
+     | operations being directed to a single execution port (for example, more
+     | multiply operations arriving in the back-end per cycle than the execution
+     | unit can support).
+     |
+        Memory Bound: 100.0% of Pipeline Slots
+         | The metric value is high. This can indicate that the significant
+         | fraction of execution pipeline slots could be stalled due to demand
+         | memory load and stores. Use Memory Access analysis to have the metric
+         | breakdown by memory hierarchy, memory bandwidth information,
+         | correlation by memory objects.
+         |
+            L1 Bound: 12.0% of Clockticks
+             | This metric shows how often machine was stalled without missing
+             | the L1 data cache. The L1 cache typically has the shortest
+             | latency. However, in certain cases like loads blocked on older
+             | stores, a load might suffer a high latency even though it is
+             | being satisfied by the L1. Note that this metric value may be
+             | highlighted due to DTLB Overhead or Cycles of 1 Port Utilized
+             | issues.
+             |
+                DTLB Overhead: 100.0% of Clockticks
+                 | Issue: A significant portion of cycles is being spent
+                 | handling first-level data TLB misses.
+                 | 
+                 | Tips:
+                 | 
+                 | 1.  As with ordinary data caching, focus on improving data
+                 | locality and reducing the working-set size to minimize the
+                 | DTLB overhead.
+                 | 
+                 | 2. Consider using profile-guided optimization (PGO) to
+                 | collocate frequently-used data on the same page.
+                 | 
+                 | 3. Try using larger page sizes for large amounts of
+                 | frequently-used data.
+                 |
+                    Load STLB Hit: 100.0% of Clockticks
+                     | In significant fraction of cycles the (first level) DTLB
+                     | was missed by load accesses, that later on hit in second-
+                     | level TLB (STLB).
+                     |
+                    Load STLB Miss: 0.3% of Clockticks
+                Loads Blocked by Store Forwarding: 0.2% of Clockticks
+                Lock Latency: 0.1% of Clockticks
+                 | A significant fraction of CPU cycles spent handling cache
+                 | misses due to lock operations. Due to the microarchitecture
+                 | handling of locks, they are classified as L1 Bound regardless
+                 | of what memory source satisfied them. Note that this metric
+                 | value may be highlighted due to Store Latency issue.
+                 |
+                Split Loads: 6.0% of Clockticks
+                4K Aliasing: 25.2% of Clockticks
+                 | Issue: A significant proportion of cycles is spent dealing
+                 | with false 4k aliasing between loads and stores.
+                 | 
+                 | Tips: Use the source/assembly view to identify the aliasing
+                 | loads and stores, and then adjust your data layout so that
+                 | the loads and stores no longer alias.
+                 | 
+                 |  See the Intel 64 and IA-32 Architectures Optimization
+                 | Reference Manual for more details.
+                 |
+                FB Full: 1.1% of Clockticks
+                 | This metric does a rough estimation of how often L1D Fill
+                 | Buffer unavailability limited additional L1D miss memory
+                 | access requests to proceed. The higher the metric value, the
+                 | deeper the memory hierarchy level the misses are satisfied
+                 | from. Often it hints on approaching bandwidth limits (to L2
+                 | cache, L3 cache or external memory). Avoid adding software
+                 | prefetches if indeed memory BW limited.
+                 |
+            L2 Bound: 4.6% of Clockticks
+            L3 Bound: 2.3% of Clockticks
+                Contested Accesses: 0.0% of Clockticks
+                Data Sharing: 1.5% of Clockticks
+                L3 Latency: 1.3% of Clockticks
+                SQ Full: 2.4% of Clockticks
+            DRAM Bound: 1.2% of Clockticks
+                Memory Bandwidth: 3.2% of Clockticks
+                Memory Latency: 11.4% of Clockticks
+                    Local DRAM: 1.9% of Clockticks
+                    Remote DRAM: 0.0% of Clockticks
+                    Remote Cache: 0.0% of Clockticks
+            Store Bound: 7.8% of Clockticks
+                Store Latency: 30.0% of Clockticks
+                False Sharing: 8.6% of Clockticks
+                Split Stores: 0.1%
+                Streaming Stores: 0.0% of Clockticks
+                DTLB Store Overhead: 18.5% of Clockticks
+                    Store STLB Hit: 17.4% of Clockticks
+                    Store STLB Miss: 1.1% of Clockticks
+        Core Bound: 100.0% of Pipeline Slots
+         | This metric represents how much Core non-memory issues were of a
+         | bottleneck. Shortage in hardware compute resources, or dependencies
+         | software's instructions are both categorized under Core Bound. Hence
+         | it may indicate the machine ran out of an OOO resources, certain
+         | execution units are overloaded or dependencies in program's data- or
+         | instruction- flow are limiting the performance (e.g. FP-chained long-
+         | latency arithmetic operations).
+         |
+            Divider: 6.9% of Clockticks
+            Port Utilization: 100.0% of Clockticks
+             | Issue: A significant fraction of cycles was stalled due to Core
+             | non-divider-related issues.
+             | 
+             | Tips: Use vectorization to reduce pressure on the execution ports
+             | as multiple elements are calculated with same uOp.
+             |
+                Cycles of 0 Ports Utilized: 2.3% of Clockticks
+                    Serializing Operations: 15.2% of Clockticks
+                        Slow Pause: 6.0% of Clockticks
+                    Mixing Vectors: 0.0% of Clockticks
+                Cycles of 1 Port Utilized: 17.8% of Clockticks
+                 | This metric represents cycles fraction where the CPU executed
+                 | total of 1 uop per cycle on all execution ports (Logical
+                 | Processor cycles since ICL, Physical Core cycles otherwise).
+                 | This can be due to heavy data-dependency among software
+                 | instructions, or oversubscribing a particular hardware
+                 | resource. In some other cases with high 1_Port_Utilized and
+                 | L1 Bound, this metric can point to L1 data-cache latency
+                 | bottleneck that may not necessarily manifest with complete
+                 | execution starvation (due to the short L1 latency e.g.
+                 | walking a linked list) - looking at the assembly can be
+                 | helpful. Note that this metric value may be highlighted due
+                 | to L1 Bound issue.
+                 |
+                Cycles of 2 Ports Utilized: 21.0% of Clockticks
+                 | This metric represents cycles fraction CPU executed total of
+                 | 2 uops per cycle on all execution ports (Logical Processor
+                 | cycles since ICL, Physical Core cycles otherwise). Tip: Loop
+                 | Vectorization - most compilers feature auto-Vectorization
+                 | options today- reduces pressure on the execution ports as
+                 | multiple elements are calculated with same uop.
+                 |
+                Cycles of 3+ Ports Utilized: 32.9% of Clockticks
+                    ALU Operation Utilization: 46.9% of Clockticks
+                        Port 0: 38.8% of Clockticks
+                        Port 1: 42.1% of Clockticks
+                        Port 5: 41.4% of Clockticks
+                        Port 6: 65.4% of Clockticks
+                    Load Operation Utilization: 39.0% of Clockticks
+                    Store Operation Utilization: 7.8% of Clockticks
+    Average CPU Frequency: 3.087 GHz
+    Total Thread Count: 3,138
+    Paused Time: 0s
+Effective CPU Utilization: 8.9%
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Average Effective CPU Utilization: 5.703 out of 64
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/vgg16.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 121.2 MB 
+    Collection start time: 05:07:19 25/03/2025 UTC
+    Collection stop time: 05:08:13 25/03/2025 UTC
+    Collector Type: Driverless Perf system-wide sampling
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: uarch-exploration
+结果保存在: vtune_results/v0.3.2.6-vgg16/uarch-exploration_vgg16_20250325_130345
+
+
+
+===============================================
+ 所有分析完成！
+ 结束时间: Tue Mar 25 01:08:27 PM CST 2025
+ 结果位置: vtune_results/v0.3.2.6-vgg16
+===============================================

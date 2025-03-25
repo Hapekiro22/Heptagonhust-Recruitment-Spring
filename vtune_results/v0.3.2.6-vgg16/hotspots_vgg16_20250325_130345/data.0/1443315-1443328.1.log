@@ -1,0 +1,1 @@
+1444002 : CRITICAL : Assertion failed: thread_manager_impl:473: (blocked == tpss_tls_op_err_ok) : . Please contact the technical support.  
