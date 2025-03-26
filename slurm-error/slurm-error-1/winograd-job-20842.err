@@ -1,0 +1,84 @@
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+cuBLAS error at winograd.cc:143 - code: 13
+
+ Performance counter stats for './winograd conf/small.conf':
+
+         27,378.29 msec task-clock                #   16.269 CPUs utilized          
+             8,358      context-switches          #  305.278 /sec                   
+                93      cpu-migrations            #    3.397 /sec                   
+           481,152      page-faults               #   17.574 K/sec                  
+    59,476,420,163      cycles                    #    2.172 GHz                      (38.10%)
+    15,558,223,074      instructions              #    0.26  insn per cycle           (45.21%)
+     3,256,422,087      branches                  #  118.942 M/sec                    (52.83%)
+         8,311,052      branch-misses             #    0.26% of all branches          (60.57%)
+   301,254,029,044      slots                     #   11.003 G/sec                    (68.64%)
+    18,657,182,253      topdown-retiring          #      5.4% retiring                (68.64%)
+    77,295,431,749      topdown-bad-spec          #     22.5% bad speculation         (68.64%)
+     1,655,112,386      topdown-fe-bound          #      0.5% frontend bound          (68.64%)
+   246,621,203,658      topdown-be-bound          #     71.6% backend bound           (68.64%)
+     3,126,584,994      L1-dcache-loads           #  114.199 M/sec                    (68.96%)
+       382,674,650      L1-dcache-load-misses     #   12.24% of all L1-dcache accesses  (69.17%)
+        14,361,949      LLC-loads                 #  524.574 K/sec                    (69.64%)
+         8,461,242      LLC-load-misses           #   58.91% of all LL-cache accesses  (70.05%)
+   <not supported>      L1-icache-loads                                             
+        49,787,764      L1-icache-load-misses                                         (31.32%)
+     3,102,792,718      dTLB-loads                #  113.330 M/sec                    (31.73%)
+         2,239,307      dTLB-load-misses          #    0.07% of all dTLB cache accesses  (31.26%)
+   <not supported>      iTLB-loads                                                  
+           398,731      iTLB-load-misses                                              (30.77%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       1.682893684 seconds time elapsed
+
+      24.460061000 seconds user
+       2.959335000 seconds sys
+
+

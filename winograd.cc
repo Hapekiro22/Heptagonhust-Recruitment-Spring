@@ -12,13 +12,158 @@ using namespace std;
 
 #include "utils.h"
 
-#define CORES 64
-#define THREADS_MIN 2
-#define THREADS_SMALL 4
-#define THREADS_MEDIUM 8
-#define THREADS_HALF 32
+//-------------------------------cores define-------------------------------------//
 
 const int64_t cores = omp_get_num_procs();
+const int64_t threads_max = cores;
+const int64_t threads_half = cores / 2;
+const int64_t threads_quarter = cores / 4;
+const int64_t threads_small = 4;
+const int64_t threads_min = 2;
+
+//-------------------------------cores define-------------------------------------//
+
+
+void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C);
+
+//-------------------------------CUDA define-------------------------------------//
+
+#include <cuda_runtime.h>
+#include <cuda.h>
+#include <cuda_runtime_api.h>
+#include <cublas_v2.h>
+
+bool use_gpu = true;
+
+// 定义 cublas 句柄
+static cublasHandle_t cublas_handle = nullptr;
+
+// 简化的错误检查宏 - 仅在 DEBUG 模式下启用
+#ifdef DEBUG
+#define CHECK_CUDA_ERROR(call) { \
+  cudaError_t err = call; \
+  if (err != cudaSuccess) { \
+      fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(err)); \
+      return; \
+  } \
+}
+
+#define CHECK_CUBLAS_ERROR(call) { \
+  cublasStatus_t status = call; \
+  if (status != CUBLAS_STATUS_SUCCESS) { \
+      fprintf(stderr, "cuBLAS error: %d\n", status); \
+      return; \
+  } \
+}
+#else
+#define CHECK_CUDA_ERROR(call) call
+#define CHECK_CUBLAS_ERROR(call) call
+#endif
+
+// 优化的 init_cublas 函数 - 避免重复初始化
+bool init_cublas() {
+  if(cublas_handle != nullptr) {
+    return true;
+  }
+  
+  int device_count = 0;
+  if (cudaGetDeviceCount(&device_count) != cudaSuccess || device_count == 0) {
+    return false;
+  }
+  
+  if (cudaSetDevice(0) != cudaSuccess) {
+    return false;
+  }
+  
+  if (cublasCreate(&cublas_handle) != CUBLAS_STATUS_SUCCESS) {
+    return false;
+  }
+  
+  // 设置 cuBLAS 流模式为非阻塞
+  cublasSetPointerMode(cublas_handle, CUBLAS_POINTER_MODE_HOST);
+  
+  return true;
+}
+
+// 高性能版 sgemm_cublas 函数
+void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C) 
+{
+    // 快速路径 - 跳过小矩阵
+    if (M < 32 || N < 32 || K < 32) {
+        sgemm(M, N, K, A, B, C);
+        return;
+    }
+    
+    // cuBLAS 不可用时回退到 CPU
+    if (!cublas_handle && !init_cublas()) {
+        sgemm(M, N, K, A, B, C);
+        return;
+    }
+    
+    // 设备内存指针
+    float *d_A = nullptr, *d_B = nullptr, *d_C = nullptr;
+    
+    // 分配设备内存
+    if (cudaMalloc(&d_A, sizeof(float) * M * K) != cudaSuccess ||
+        cudaMalloc(&d_B, sizeof(float) * N * K) != cudaSuccess ||
+        cudaMalloc(&d_C, sizeof(float) * M * N) != cudaSuccess) {
+        // 内存分配失败时释放已分配内存
+        if (d_A) cudaFree(d_A);
+        if (d_B) cudaFree(d_B);
+        if (d_C) cudaFree(d_C);
+        sgemm(M, N, K, A, B, C);
+        return;
+    }
+    
+    // 复制数据到设备
+    cudaMemcpyAsync(d_A, A, sizeof(float) * M * K, cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(d_B, B, sizeof(float) * N * K, cudaMemcpyHostToDevice);
+    
+    // 设置乘法参数
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
+    
+    // 执行矩阵乘法
+    cublasSgemm(
+        cublas_handle, 
+        CUBLAS_OP_T,       // 转置 B
+        CUBLAS_OP_T,       // 转置 A
+        M,                 // C 的行数
+        N,                 // C 的列数
+        K,                 // 共同维度
+        &alpha,
+        d_A,               // A 矩阵
+        K,                 // A 的主要步长
+        d_B,               // B 矩阵
+        N,                 // B 的主要步长
+        &beta,
+        d_C,               // C 矩阵
+        M                  // C 的主要步长
+    );
+    
+    // 复制结果回主机
+    cudaMemcpyAsync(C, d_C, sizeof(float) * M * N, cudaMemcpyDeviceToHost);
+    
+    // 确保操作完成
+    cudaDeviceSynchronize();
+    
+    // 释放设备内存
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+}
+
+// 优化的资源释放
+void destroy_cublas() {
+    if (cublas_handle) {
+        cublasDestroy(cublas_handle);
+        cublas_handle = nullptr;
+    }
+}
+
+//-------------------------------CUDA define-------------------------------------//
+
+
 
 struct alignas(64) parameters {
   float z0, z1, z2, z3, z4, z5, z6, z7; //内存对齐
@@ -39,7 +184,7 @@ void image_transform(float *__restrict__ packed_image,
 
   struct parameters zgroup;
 
-  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(threads_max)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
       for (int64_t w = 0; w < ti.tile_in_w; ++w) {
 
@@ -95,7 +240,7 @@ void image_transform(float *__restrict__ packed_image,
 
   }
         
-  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(threads_max)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++)
   {
       for (int64_t h = 0; h < ti.tile_in_h; ++h) {
@@ -167,7 +312,7 @@ void filter_transform(float *__restrict__ packed_filter,
   struct parameters zgroup;
 
   //全部用zgroup
-  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(threads_max)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
         for (int64_t w = 0; w < fs.w; ++w){
 
@@ -206,7 +351,7 @@ void filter_transform(float *__restrict__ packed_filter,
         
       }
       
-  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(threads_max)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++)
   {
       for (int64_t h = 0; h < us.h; ++h) {
@@ -257,7 +402,7 @@ void output_transform(float *__restrict__ M,
   //float z0, z1, z2, z3, z4;
   struct parameters zgroup;
 
-  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(threads_max)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
     for (int64_t w = 0; w < ti.tile_in_w; ++w) {
       zgroup.z4 = M_tensor[0][w][idx];
@@ -300,7 +445,7 @@ void output_transform(float *__restrict__ M,
     } 
   }
   
-  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(threads_max)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++){
     for (int64_t h = 0; h < ti.tile_out_h; ++h) {
 
@@ -396,7 +541,7 @@ void output_unpacking_store(float *__restrict__ Y,
   Y_tensor_t Y_tensor = (Y_tensor_t)Y;
   out_tensor_t out_tensor = (out_tensor_t)out;
 
-  #pragma omp parallel for collapse(4) schedule(guided) num_threads(CORES)
+  #pragma omp parallel for collapse(4) schedule(guided) num_threads(threads_max)
   for (int64_t h = 0; h < ti.tile_out_h; ++h) {
     for (int64_t w = 0; w < ti.tile_out_w; ++w) {
       for (int64_t oc = 0; oc < os.oc; oc++) {
@@ -497,13 +642,19 @@ void winograd_convolution(
   float *M = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles);
   float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
 
-      filter_packing(filter, packed_filter, fs);
-      filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
+  filter_packing(filter, packed_filter, fs);
+  filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
 
-      image_packing(image, packed_image, is, ti);
-      image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
+  image_packing(image, packed_image, is, ti);
+  image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
 
-  #pragma omp parallel for collapse(2) schedule(guided) num_threads(CORES)
+//CUDA Prepare
+
+  use_gpu = init_cublas();
+  if(!use_gpu)
+    printf("CUDA init failed\n");
+  
+  #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max/2)
   for (int64_t h = 0; h < ti.tile_in_h; ++h) {
     for (int64_t w = 0; w < ti.tile_in_w; ++w) {
       typedef float(*U_tensor_t)[ti.tile_in_w][us.oc][us.ic];
@@ -512,17 +663,22 @@ void winograd_convolution(
       U_tensor_t U_tensor = (U_tensor_t)U;
       V_tensor_t V_tensor = (V_tensor_t)V;
       M_tensor_t M_tensor = (M_tensor_t)M;
-      sgemm(vs.num_tiles,
-            us.oc,
+      sgemm(us.oc,
             us.ic,
-            (float *)(V_tensor[h][w]),
+            vs.num_tiles,
             (float *)(U_tensor[h][w]),
+            (float *)(V_tensor[h][w]),
             (float *)(M_tensor[h][w]));
     }
   }
 
   output_transform(M, Y, ti, us.oc * vs.num_tiles);
   output_unpacking_store(Y, out, os, ti);
+
+//CUDA Destroy
+  if(use_gpu)
+    destroy_cublas();
+
 
   free(packed_filter);
   free(packed_image);

@@ -1,0 +1,43 @@
+/var/spool/slurmd/job20818/slurm_script: line 25: ../env.sh: No such file or directory
+cuBLAS error at winograd.cc:106 - code: 7
+CUDA error at winograd.cc:100 - driver shutting down
+CUDA error at winograd.cc:95 - driver shutting down
+CUDA error at winograd.cc:95 - driver shutting down
+CUDA error at winograd.cc:95 - driver shutting down
+CUDA error at winograd.cc:95 - driver shutting down
+./winograd: Segmentation fault
+
+ Performance counter stats for './winograd conf/small.conf':
+
+          1,803.14 msec task-clock                #    1.460 CPUs utilized          
+               386      context-switches          #  214.071 /sec                   
+                 6      cpu-migrations            #    3.328 /sec                   
+           243,671      page-faults               #  135.137 K/sec                  
+     2,805,463,840      cycles                    #    1.556 GHz                      (37.83%)
+     4,143,960,171      instructions              #    1.48  insn per cycle           (45.62%)
+       670,937,505      branches                  #  372.094 M/sec                    (59.20%)
+         4,960,345      branch-misses             #    0.74% of all branches          (71.41%)
+    18,485,029,238      slots                     #   10.252 G/sec                    (80.01%)
+     3,022,224,560      topdown-retiring          #     15.7% retiring                (80.01%)
+     4,226,147,039      topdown-bad-spec          #     22.0% bad speculation         (80.01%)
+     1,418,814,369      topdown-fe-bound          #      7.4% frontend bound          (80.01%)
+    10,529,579,284      topdown-be-bound          #     54.9% backend bound           (80.01%)
+       951,356,003      L1-dcache-loads           #  527.610 M/sec                    (80.46%)
+        60,368,192      L1-dcache-load-misses     #    6.35% of all L1-dcache accesses  (80.47%)
+         4,433,184      LLC-loads                 #    2.459 M/sec                    (80.65%)
+         2,352,606      LLC-load-misses           #   53.07% of all LL-cache accesses  (81.05%)
+   <not supported>      L1-icache-loads                                             
+        43,594,048      L1-icache-load-misses                                         (19.68%)
+     1,116,722,131      dTLB-loads                #  619.320 M/sec                    (31.41%)
+           621,681      dTLB-load-misses          #    0.06% of all dTLB cache accesses  (30.97%)
+   <not supported>      iTLB-loads                                                  
+           125,471      iTLB-load-misses                                              (30.46%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       1.234768125 seconds time elapsed
+
+       1.193779000 seconds user
+       0.615739000 seconds sys
+
+

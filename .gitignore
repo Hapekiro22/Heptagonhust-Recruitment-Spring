@@ -7,3 +7,6 @@ vtune_results/
 
 result_data/
 
+CUDA-check/
+
+slurn-*

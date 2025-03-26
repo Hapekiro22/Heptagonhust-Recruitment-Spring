@@ -15,7 +15,14 @@ export OMP_NUN_THREADS=64
 # Note: numactl - Control NUMA policy for processes or shared memory, see `man numactl'.`
 # Note: perf-stat - Run a command and gather performance counter statistics, see `man perf stat'.
 
-echo "Parameters: [version:vx.x.x] [input_config(0/1)]"
+echo "This will run program on hepnode0, are you sure? (1/0)"
+read answer
+if [ "$answer" == 1 ] ;then
+	echo "Yes"
+else
+	echo "No"
+	exit
+fi
 
 directory=result_data
 
