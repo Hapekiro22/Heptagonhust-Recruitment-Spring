@@ -1,7 +1,0 @@
-Parameters: [version:vx.x.x] [input_config(0/1)]
-Layer 0 :  Elapse time 0.372012 ms. (    0.04 GFlops) 
-Layer 1 :  Elapse time 0.111977 ms. (    0.62 GFlops) 
-Layer 2 :  Elapse time 0.823657 ms. (    3.02 GFlops) 
-Layer 3 :  Elapse time 3.780365 ms. (   44.93 GFlops) 
-Layer 4 :  Elapse time 62.103271 ms. (   87.53 GFlops) 
-Total elapse time: 0.067191. (   83.47 GFlops) 
