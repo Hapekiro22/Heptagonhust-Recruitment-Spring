@@ -1,0 +1,43 @@
+cuBLAS error at winograd.cc:86 - code: 1
+CUDA error at winograd.cc:73 - driver shutting down
+CUDA error at winograd.cc:72 - driver shutting down
+CUDA error at winograd.cc:72 - driver shutting down
+CUDA error at winograd.cc:72 - driver shutting down
+CUDA error at winograd.cc:72 - driver shutting down
+CUDA error at winograd.cc:73 - driver shutting down
+./winograd: Segmentation fault
+
+ Performance counter stats for './winograd conf/small.conf':
+
+            727.82 msec task-clock                #    2.278 CPUs utilized          
+               502      context-switches          #  689.727 /sec                   
+                 5      cpu-migrations            #    6.870 /sec                   
+             4,752      page-faults               #    6.529 K/sec                  
+       354,417,592      cycles                    #    0.487 GHz                      (34.09%)
+       332,750,782      instructions              #    0.94  insn per cycle           (64.71%)
+        86,007,625      branches                  #  118.171 M/sec                    (79.82%)
+           359,451      branch-misses             #    0.42% of all branches          (87.14%)
+     5,928,827,001      slots                     #    8.146 G/sec                    (91.11%)
+       632,274,665      topdown-retiring          #     10.5% retiring                (91.11%)
+       370,854,079      topdown-bad-spec          #      6.1% bad speculation         (91.11%)
+       202,501,994      topdown-fe-bound          #      3.3% frontend bound          (91.11%)
+     4,839,668,807      topdown-be-bound          #     80.1% backend bound           (91.11%)
+       111,796,208      L1-dcache-loads           #  153.603 M/sec                    (91.31%)
+         6,780,449      L1-dcache-load-misses     #    6.07% of all L1-dcache accesses  (91.94%)
+           614,264      LLC-loads                 #  843.974 K/sec                    (92.50%)
+           401,067      LLC-load-misses           #   65.29% of all LL-cache accesses  (93.07%)
+   <not supported>      L1-icache-loads                                             
+         8,600,089      L1-icache-load-misses                                         (8.97%)
+        88,490,112      dTLB-loads                #  121.582 M/sec                    (29.98%)
+            65,595      dTLB-load-misses          #    0.07% of all dTLB cache accesses  (29.47%)
+   <not supported>      iTLB-loads                                                  
+            24,052      iTLB-load-misses                                              (26.70%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       0.319541093 seconds time elapsed
+
+       0.547821000 seconds user
+       0.185025000 seconds sys
+
+

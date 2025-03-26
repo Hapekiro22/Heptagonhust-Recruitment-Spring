@@ -12,130 +12,13 @@ using namespace std;
 
 #include "utils.h"
 
+#define CORES 64
+#define THREADS_MIN 2
+#define THREADS_SMALL 4
+#define THREADS_MEDIUM 8
+#define THREADS_HALF 32
+
 const int64_t cores = omp_get_num_procs();
-
-/*void image_transform(float *__restrict__ packed_image,
-                     float *__restrict__ V,
-                     const V_shape_t vs,
-                     const tiling_info_t ti,
-                     const int64_t collapsed_dim_size) {
-  typedef float(*packed_image_tensor_t)[ti.tile_in_w][collapsed_dim_size];
-  typedef float(*V_tensor_t)[ti.tile_in_w][collapsed_dim_size];
-  packed_image_tensor_t packed_image_tensor = (packed_image_tensor_t)packed_image;
-  V_tensor_t V_tensor = (V_tensor_t)V;
-
-  float z0, z1, z2, z3, z4, z5, z6;
-
-
-#pragma omp parallel for schedule(guided) private(z0, z1, z2, z3, z4, z5, z6)
-for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
-
-    #pragma omp simd
-    for (int64_t w = 0; w < ti.tile_in_w; ++w) {
-
-      //Non-SIMD Part
-        z6 = packed_image_tensor[0][w][idx];
-
-        z0 = 4.0f * z6;
-
-        z6 = packed_image_tensor[1][w][idx];
-
-        z1 = -4.0f * z6;
-        z2 = 4.0f * z6;
-        z3 = -2.0f * z6;
-        z4 = 2.0f * z6;
-        z5 = 4.0f * z6;
-
-        z6 = packed_image_tensor[2][w][idx];
-
-        z0 += -5.0f * z6;
-        z1 += -4.0f * z6;
-        z2 += -4.0f * z6;
-        z3 += -z6;
-        z4 += -z6;
-
-        z6 = packed_image_tensor[3][w][idx];
-
-        z1 += z6;
-        z2 += -z6;
-        z3 += 2.0f * z6;
-        z4 += -2.0f * z6;
-        z5 += -5.0f * z6;
-
-        z6 = packed_image_tensor[4][w][idx];
-
-        z0 += z6;
-        z1 += z6;
-        z2 += z6;
-        z3 += z6;
-        z4 += z6;
-
-        z6 = packed_image_tensor[5][w][idx];
-
-        z5 += z6;
-
-        V_tensor[0][w][idx] = z0;
-        V_tensor[1][w][idx] = z1;
-        V_tensor[2][w][idx] = z2;
-        V_tensor[3][w][idx] = z3;
-        V_tensor[4][w][idx] = z4;
-        V_tensor[5][w][idx] = z5;
-
-    }
-
-    #pragma omp simd
-      for (int64_t h = 0; h < ti.tile_in_h; ++h) {
-
-        //Non-SIMD Part
-          z6 = V_tensor[h][0][idx];
-
-          z0 = 4.0f * z6;
-
-          z6 = V_tensor[h][1][idx];
-
-          z1 = -4.0f * z6;
-          z2 = 4.0f * z6;
-          z3 = -2.0f * z6;
-          z4 = 2.0f * z6;
-          z5 = 4.0f * z6;
-
-          z6 = V_tensor[h][2][idx];
-
-          z0 += -5.0f * z6;
-          z1 += -4.0f * z6;
-          z2 += -4.0f * z6;
-          z3 += -z6;
-          z4 += -z6;
-
-          z6 = V_tensor[h][3][idx];
-
-          z1 += z6;
-          z2 += -z6;
-          z3 += 2.0f * z6;
-          z4 += -2.0f * z6;
-          z5 += -5.0f * z6;
-
-          z6 = V_tensor[h][4][idx];
-
-          z0 += z6;
-          z1 += z6;
-          z2 += z6;
-          z3 += z6;
-          z4 += z6;
-
-          z6 = V_tensor[h][5][idx];
-
-          z5 += z6;
-
-          V_tensor[h][0][idx] = z0;
-          V_tensor[h][1][idx] = z1;
-          V_tensor[h][2][idx] = z2;
-          V_tensor[h][3][idx] = z3;
-          V_tensor[h][4][idx] = z4;
-          V_tensor[h][5][idx] = z5;
-      }
-  }
-} */
 
 struct alignas(64) parameters {
   float z0, z1, z2, z3, z4, z5, z6, z7; //内存对齐
@@ -156,10 +39,8 @@ void image_transform(float *__restrict__ packed_image,
 
   struct parameters zgroup;
 
-  #pragma omp parallel for schedule(guided) private(zgroup)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
-
-      #pragma omp simd
       for (int64_t w = 0; w < ti.tile_in_w; ++w) {
 
         //Non-SIMD Part
@@ -212,58 +93,63 @@ void image_transform(float *__restrict__ packed_image,
 
       }
 
-      #pragma omp simd
-        for (int64_t h = 0; h < ti.tile_in_h; ++h) {
+  }
+        
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  for (int64_t idx = 0; idx < collapsed_dim_size; idx++)
+  {
+      for (int64_t h = 0; h < ti.tile_in_h; ++h) {
 
-          zgroup.z6 = V_tensor[h][0][idx];
+        zgroup.z6 = V_tensor[h][0][idx];
 
-          zgroup.z0 = 4.0f * zgroup.z6;
+        zgroup.z0 = 4.0f * zgroup.z6;
 
-          zgroup.z6 = V_tensor[h][1][idx];
+        zgroup.z6 = V_tensor[h][1][idx];
 
-          zgroup.z1 = -4.0f * zgroup.z6;
-          zgroup.z2 = 4.0f * zgroup.z6;
-          zgroup.z3 = -2.0f * zgroup.z6;
-          zgroup.z4 = 2.0f * zgroup.z6;
-          zgroup.z5 = 4.0f * zgroup.z6;
+        zgroup.z1 = -4.0f * zgroup.z6;
+        zgroup.z2 = 4.0f * zgroup.z6;
+        zgroup.z3 = -2.0f * zgroup.z6;
+        zgroup.z4 = 2.0f * zgroup.z6;
+        zgroup.z5 = 4.0f * zgroup.z6;
 
-          zgroup.z6 = V_tensor[h][2][idx];
+        zgroup.z6 = V_tensor[h][2][idx];
 
-          zgroup.z0 += -5.0f * zgroup.z6;
-          zgroup.z1 += -4.0f * zgroup.z6;
-          zgroup.z2 += -4.0f * zgroup.z6;
-          zgroup.z3 += -zgroup.z6;
-          zgroup.z4 += -zgroup.z6;
+        zgroup.z0 += -5.0f * zgroup.z6;
+        zgroup.z1 += -4.0f * zgroup.z6;
+        zgroup.z2 += -4.0f * zgroup.z6;
+        zgroup.z3 += -zgroup.z6;
+        zgroup.z4 += -zgroup.z6;
 
-          zgroup.z6 = V_tensor[h][3][idx];
+        zgroup.z6 = V_tensor[h][3][idx];
 
-          zgroup.z1 += zgroup.z6;
-          zgroup.z2 += -zgroup.z6;
-          zgroup.z3 += 2.0f * zgroup.z6;
-          zgroup.z4 += -2.0f * zgroup.z6;
-          zgroup.z5 += -5.0f * zgroup.z6;
+        zgroup.z1 += zgroup.z6;
+        zgroup.z2 += -zgroup.z6;
+        zgroup.z3 += 2.0f * zgroup.z6;
+        zgroup.z4 += -2.0f * zgroup.z6;
+        zgroup.z5 += -5.0f * zgroup.z6;
 
-          zgroup.z6 = V_tensor[h][4][idx];
+        zgroup.z6 = V_tensor[h][4][idx];
 
-          zgroup.z0 += zgroup.z6;
-          zgroup.z1 += zgroup.z6;
-          zgroup.z2 += zgroup.z6;
-          zgroup.z3 += zgroup.z6;
-          zgroup.z4 += zgroup.z6;
+        zgroup.z0 += zgroup.z6;
+        zgroup.z1 += zgroup.z6;
+        zgroup.z2 += zgroup.z6;
+        zgroup.z3 += zgroup.z6;
+        zgroup.z4 += zgroup.z6;
 
-          zgroup.z6 = V_tensor[h][5][idx];
+        zgroup.z6 = V_tensor[h][5][idx];
 
-          zgroup.z5 += zgroup.z6;
+        zgroup.z5 += zgroup.z6;
 
-            V_tensor[h][0][idx] = zgroup.z0;
-            V_tensor[h][1][idx] = zgroup.z1;
-            V_tensor[h][2][idx] = zgroup.z2;
-            V_tensor[h][3][idx] = zgroup.z3;
-            V_tensor[h][4][idx] = zgroup.z4;
-            V_tensor[h][5][idx] = zgroup.z5;
-
-        }
-    }
+          V_tensor[h][0][idx] = zgroup.z0;
+          V_tensor[h][1][idx] = zgroup.z1;
+          V_tensor[h][2][idx] = zgroup.z2;
+          V_tensor[h][3][idx] = zgroup.z3;
+          V_tensor[h][4][idx] = zgroup.z4;
+          V_tensor[h][5][idx] = zgroup.z5;
+      }
+  }
+        
+        
 }
 
 
@@ -281,9 +167,8 @@ void filter_transform(float *__restrict__ packed_filter,
   struct parameters zgroup;
 
   //全部用zgroup
-  #pragma omp parallel for schedule(guided) private(zgroup)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
-        #pragma omp simd
         for (int64_t w = 0; w < fs.w; ++w){
 
           zgroup.z6 = packed_filter_tensor[w][0][idx];
@@ -318,40 +203,47 @@ void filter_transform(float *__restrict__ packed_filter,
 
         }
 
-        #pragma omp simd
-        for (int64_t h = 0; h < us.h; ++h) {
-            
-            zgroup.z6 = U_tensor[0][h][idx];
-
-            zgroup.z0 = (1.0f / 4.0f) * zgroup.z6;
-            zgroup.z1 = (-1.0f / 6.0f) * zgroup.z6;
-            zgroup.z2 = (-1.0f / 6.0f) * zgroup.z6;
-            zgroup.z3 = (1.0f / 24.0f) * zgroup.z6;
-            zgroup.z4 = (1.0f / 24.0f) * zgroup.z6;
-
-            zgroup.z6 = U_tensor[1][h][idx];
-
-            zgroup.z1 += (-1.0f / 6.0f) * zgroup.z6;
-            zgroup.z2 += (1.0f / 6.0f) * zgroup.z6;
-            zgroup.z3 += (1.0f / 12.0f) * zgroup.z6;
-            zgroup.z4 += (-1.0f / 12.0f) * zgroup.z6;
-
-            zgroup.z6 = U_tensor[2][h][idx];
-
-            zgroup.z1 += (-1.0f / 6.0f) * zgroup.z6;
-            zgroup.z2 += (-1.0f / 6.0f) * zgroup.z6;
-            zgroup.z3 += (1.0f / 6.0f) * zgroup.z6;
-            zgroup.z4 += (1.0f / 6.0f) * zgroup.z6;
-            zgroup.z5 = zgroup.z6;
-
-            U_tensor[0][h][idx] = zgroup.z0;
-            U_tensor[1][h][idx] = zgroup.z1;
-            U_tensor[2][h][idx] = zgroup.z2;
-            U_tensor[3][h][idx] = zgroup.z3;
-            U_tensor[4][h][idx] = zgroup.z4;
-            U_tensor[5][h][idx] = zgroup.z5;
-        }
+        
       }
+      
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  for (int64_t idx = 0; idx < collapsed_dim_size; idx++)
+  {
+      for (int64_t h = 0; h < us.h; ++h) {
+          
+          zgroup.z6 = U_tensor[0][h][idx];
+
+          zgroup.z0 = (1.0f / 4.0f) * zgroup.z6;
+          zgroup.z1 = (-1.0f / 6.0f) * zgroup.z6;
+          zgroup.z2 = (-1.0f / 6.0f) * zgroup.z6;
+          zgroup.z3 = (1.0f / 24.0f) * zgroup.z6;
+          zgroup.z4 = (1.0f / 24.0f) * zgroup.z6;
+
+          zgroup.z6 = U_tensor[1][h][idx];
+
+          zgroup.z1 += (-1.0f / 6.0f) * zgroup.z6;
+          zgroup.z2 += (1.0f / 6.0f) * zgroup.z6;
+          zgroup.z3 += (1.0f / 12.0f) * zgroup.z6;
+          zgroup.z4 += (-1.0f / 12.0f) * zgroup.z6;
+
+          zgroup.z6 = U_tensor[2][h][idx];
+
+          zgroup.z1 += (-1.0f / 6.0f) * zgroup.z6;
+          zgroup.z2 += (-1.0f / 6.0f) * zgroup.z6;
+          zgroup.z3 += (1.0f / 6.0f) * zgroup.z6;
+          zgroup.z4 += (1.0f / 6.0f) * zgroup.z6;
+          zgroup.z5 = zgroup.z6;
+
+          U_tensor[0][h][idx] = zgroup.z0;
+          U_tensor[1][h][idx] = zgroup.z1;
+          U_tensor[2][h][idx] = zgroup.z2;
+          U_tensor[3][h][idx] = zgroup.z3;
+          U_tensor[4][h][idx] = zgroup.z4;
+          U_tensor[5][h][idx] = zgroup.z5;
+      }
+  }
+
+        
 }
 
 void output_transform(float *__restrict__ M,
@@ -365,11 +257,9 @@ void output_transform(float *__restrict__ M,
   //float z0, z1, z2, z3, z4;
   struct parameters zgroup;
 
-  #pragma omp parallel for schedule(guided) private(zgroup)
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
   for (int64_t idx = 0; idx < collapsed_dim_size; idx++) {
-    #pragma omp simd
     for (int64_t w = 0; w < ti.tile_in_w; ++w) {
-      
       zgroup.z4 = M_tensor[0][w][idx];
 
       zgroup.z0 = zgroup.z4;
@@ -407,9 +297,11 @@ void output_transform(float *__restrict__ M,
       Y_tensor[2][w][idx] = zgroup.z2;
       Y_tensor[3][w][idx] = zgroup.z3;
 
-    }
-
-    #pragma omp simd
+    } 
+  }
+  
+  #pragma omp parallel for collapse(2) schedule(guided) private(zgroup) num_threads(CORES)
+  for (int64_t idx = 0; idx < collapsed_dim_size; idx++){
     for (int64_t h = 0; h < ti.tile_out_h; ++h) {
 
       zgroup.z4 = Y_tensor[h][0][idx];
@@ -451,6 +343,7 @@ void output_transform(float *__restrict__ M,
 
     }
   }
+    
 }
 
 
@@ -503,7 +396,7 @@ void output_unpacking_store(float *__restrict__ Y,
   Y_tensor_t Y_tensor = (Y_tensor_t)Y;
   out_tensor_t out_tensor = (out_tensor_t)out;
 
-  #pragma omp parallel for collapse(2) schedule(guided)
+  #pragma omp parallel for collapse(4) schedule(guided) num_threads(CORES)
   for (int64_t h = 0; h < ti.tile_out_h; ++h) {
     for (int64_t w = 0; w < ti.tile_out_w; ++w) {
       for (int64_t oc = 0; oc < os.oc; oc++) {
@@ -531,7 +424,7 @@ void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B
   const int BN = 64; // N方向分块
   const int BK = 64; // K方向分块
 
-  #pragma omp parallel for schedule(guided) collapse(2)
+  //#pragma omp parallel for schedule(guided) collapse(2) 
   for (int64_t bn = 0; bn < N; bn += BN) {
     for (int64_t bm = 0; bm < M; bm += BM) {
       const int64_t max_n = std::min(bn + BN, N);
@@ -604,13 +497,13 @@ void winograd_convolution(
   float *M = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles);
   float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
 
-  filter_packing(filter, packed_filter, fs);
-  filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
+      filter_packing(filter, packed_filter, fs);
+      filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
 
-  image_packing(image, packed_image, is, ti);
-  image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
+      image_packing(image, packed_image, is, ti);
+      image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
 
-  #pragma omp parallel for collapse(2) schedule(guided) 
+  #pragma omp parallel for collapse(2) schedule(guided) num_threads(CORES)
   for (int64_t h = 0; h < ti.tile_in_h; ++h) {
     for (int64_t w = 0; w < ti.tile_in_w; ++w) {
       typedef float(*U_tensor_t)[ti.tile_in_w][us.oc][us.ic];

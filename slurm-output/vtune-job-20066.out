@@ -1,0 +1,381 @@
+使用版本: v0.3.2
+使用小测试集 (Small)
+错误: VTune 未能成功加载，尝试其他加载方法...
+VTune 版本信息：
+Intel(R) VTune(TM) Profiler 2024.1.0 (build 627630) Command Line Tool
+Copyright (C) 2009 Intel Corporation. All rights reserved.
+===============================================
+ VTune 分析报告 - 版本: v0.3.2 - 测试集: small
+ 开始时间: Mon Mar 24 11:05:02 PM CST 2025
+===============================================
+
+
+
+--- 开始 hotspots 分析 Mon Mar 24 11:05:02 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 3.042618 ms. (    0.00 GFlops) 
+Layer 1 :  Elapse time 3.291051 ms. (    0.02 GFlops) 
+Layer 2 :  Elapse time 3.338019 ms. (    0.75 GFlops) 
+Layer 3 :  Elapse time 16.031027 ms. (   10.60 GFlops) 
+Layer 4 :  Elapse time 98.239342 ms. (   55.33 GFlops) 
+Total elapse time: 0.123942. (   45.25 GFlops) 
+Elapsed Time: 0.880s
+    CPU Time: 3.450s
+        Effective Time: 3.450s
+        Spin Time: 0s
+        Overhead Time: 0s
+    Total Thread Count: 64
+    Paused Time: 0s
+
+Top Hotspots
+Function                          Module    CPU Time  % of CPU Time(%)
+--------------------------------  --------  --------  ----------------
+output_unpacking_store._omp_fn.0  winograd    0.730s             21.2%
+output_transform._omp_fn.0        winograd    0.700s             20.3%
+sgemm._omp_fn.0                   winograd    0.625s             18.1%
+image_transform._omp_fn.0         winograd    0.550s             15.9%
+image_packing._omp_fn.0           winograd    0.480s             13.9%
+[Others]                          N/A         0.365s             10.6%
+Effective CPU Utilization: 8.1%
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Average Effective CPU Utilization: 5.186 out of 64
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/small.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 4.0 MB 
+    Collection start time: 15:05:05 24/03/2025 UTC
+    Collection stop time: 15:05:06 24/03/2025 UTC
+    Collector Type: Driverless Perf per-process counting,User-mode sampling and tracing
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: hotspots
+结果保存在: vtune_results/v0.3.2/hotspots_small_20250324_230502
+
+
+
+--- 开始 memory-access 分析 Mon Mar 24 11:05:12 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 2.031326 ms. (    0.01 GFlops) 
+Layer 1 :  Elapse time 2.075990 ms. (    0.03 GFlops) 
+Layer 2 :  Elapse time 2.455314 ms. (    1.01 GFlops) 
+Layer 3 :  Elapse time 9.208997 ms. (   18.45 GFlops) 
+Layer 4 :  Elapse time 73.846658 ms. (   73.61 GFlops) 
+Total elapse time: 0.089618. (   62.58 GFlops) 
+Elapsed Time: 0.285s
+ | Application execution time is too short. Metrics data may be unreliable.
+ | Consider reducing the sampling interval or increasing your application
+ | execution time.
+ |
+    CPU Time: 3.017s
+    Memory Bound: 40.6% of Pipeline Slots
+     | The metric value is high. This may indicate that a significant fraction
+     | of execution pipeline slots could be stalled due to demand memory load
+     | and stores. Explore the metric breakdown by memory hierarchy, memory
+     | bandwidth information, and correlation by memory objects.
+     |
+        L1 Bound: 33.6% of Clockticks
+         | This metric shows how often machine was stalled without missing the
+         | L1 data cache. The L1 cache typically has the shortest latency.
+         | However, in certain cases like loads blocked on older stores, a load
+         | might suffer a high latency even though it is being satisfied by the
+         | L1.
+         |
+        L2 Bound: 5.2% of Clockticks
+         | This metric shows how often machine was stalled on L2 cache. Avoiding
+         | cache misses (L1 misses/L2 hits) will improve the latency and
+         | increase performance.
+         |
+        L3 Bound: 0.0% of Clockticks
+        DRAM Bound: 0.0% of Clockticks
+            DRAM Bandwidth Bound: 0.0% of Elapsed Time
+        Store Bound: 3.1% of Clockticks
+        NUMA: % of Remote Accesses: 0.0%
+        UPI Utilization Bound: 0.0% of Elapsed Time
+    Loads: 1,943,056,770
+    Stores: 338,176,433
+    LLC Miss Count: 0
+        Local Memory Access Count: 0
+        Remote Memory Access Count: 0
+        Remote Cache Access Count: 0
+    Total Thread Count: 66
+    Paused Time: 0s
+
+Bandwidth Utilization
+Bandwidth Domain                  Platform Maximum  Observed Maximum  Average  % of Elapsed Time with High BW Utilization(%)
+--------------------------------  ----------------  ----------------  -------  ---------------------------------------------
+DRAM, GB/sec                      180                         26.600    8.973                                           0.0%
+DRAM Single-Package, GB/sec       90                          26.500    9.113                                           0.0%
+UPI Utilization Single-link, (%)  100                          1.000    0.000                                           0.0%
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/small.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 10.3 MB 
+    Collection start time: 15:05:30 24/03/2025 UTC
+    Collection stop time: 15:05:30 24/03/2025 UTC
+    Collector Type: Driverless Perf system-wide sampling
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        Max DRAM Single-Package Bandwidth: 90.000 GB/s
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+Recommendations:
+    Increase execution time: 
+     | Application execution time is too short. Metrics data may be unreliable.
+     | Consider reducing the sampling interval or increasing your application
+     | execution time.
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: memory-access
+结果保存在: vtune_results/v0.3.2/memory-access_small_20250324_230502
+
+
+
+--- 开始 threading 分析 Mon Mar 24 11:05:36 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 3.386656 ms. (    0.00 GFlops) 
+Layer 1 :  Elapse time 2.567689 ms. (    0.03 GFlops) 
+Layer 2 :  Elapse time 2.907991 ms. (    0.86 GFlops) 
+Layer 3 :  Elapse time 14.288664 ms. (   11.89 GFlops) 
+Layer 4 :  Elapse time 98.119338 ms. (   55.40 GFlops) 
+Total elapse time: 0.121270. (   46.25 GFlops) 
+Elapsed Time: 0.853s
+    Paused Time: 0s
+Effective CPU Utilization: 6.4% (4.093 out of 64 logical CPUs)
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Total Thread Count: 65
+        Thread Oversubscription: 0s (0.0% of CPU Time)
+    Wait Time with poor CPU Utilization: 0.000s (100.0% of Wait Time)
+
+        Top Waiting Objects
+        Sync Object                                                                   Wait Time with poor CPU Utilization  (% from Object Wait Time)(%)  Wait Count
+        ----------------------------------------------------------------------------  -----------------------------------  ----------------------------  ----------
+        Stream conf/small.conf 0x4e2c38dc                                                                          0.000s                        100.0%           1
+        Stream /proc/self/status 0x3791b3a6                                                                        0.000s                        100.0%           1
+        Stream /sys/devices/system/cpu/cpu0/topology/core_siblings_list 0x69712aff                                 0.000s                        100.0%           1
+        Stream /sys/devices/system/node/node2/meminfo 0xb3eede6d                                                   0.000s                        100.0%           1
+        Stream /sys/devices/system/cpu/cpu1/topology/thread_siblings_list 0x8b73d7cf                               0.000s                        100.0%           1
+        [Others]                                                                                                   0.000s                        100.0%          20
+    Spin and Overhead Time: 0s (0.0% of CPU Time)
+
+        Top Functions with Spin or Overhead Time
+        Function  Module  Spin and Overhead Time  (% from CPU Time)(%)
+        --------  ------  ----------------------  --------------------
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/small.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 4.0 MB 
+    Collection start time: 15:05:38 24/03/2025 UTC
+    Collection stop time: 15:05:39 24/03/2025 UTC
+    Collector Type: User-mode sampling and tracing
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: threading
+结果保存在: vtune_results/v0.3.2/threading_small_20250324_230502
+
+
+
+--- 开始 uarch-exploration 分析 Mon Mar 24 11:05:44 PM CST 2025 ---
+收集数据中，请等待...
+Layer 0 :  Elapse time 0.974019 ms. (    0.01 GFlops) 
+Layer 1 :  Elapse time 0.940641 ms. (    0.07 GFlops) 
+Layer 2 :  Elapse time 1.495043 ms. (    1.66 GFlops) 
+Layer 3 :  Elapse time 6.957690 ms. (   24.41 GFlops) 
+Layer 4 :  Elapse time 68.953673 ms. (   78.83 GFlops) 
+Total elapse time: 0.079321. (   70.70 GFlops) 
+Elapsed Time: 0.251s
+ | Application execution time is too short. Metrics data may be unreliable.
+ | Consider reducing the sampling interval or increasing your application
+ | execution time.
+ |
+    Clockticks: 6,930,000,000
+    Instructions Retired: 7,250,000,000
+    CPI Rate: 0.956
+    MUX Reliability
+    Retiring: 0.0% of Pipeline Slots
+        Light Operations: 0.0% of Pipeline Slots
+            FP Arithmetic: 0.0% of uOps
+                FP x87: 0.0% of uOps
+                FP Scalar: 0.0% of uOps
+                FP Vector: 0.0% of uOps
+                    128-bit FP Vector: 0.0% of uOps
+                    256-bit FP Vector: 0.0% of uOps
+                    512-bit FP Vector: 0.0% of uOps
+            Memory Operations: 0.0% of Pipeline Slots
+            Branch Instructions: 0.0% of Pipeline Slots
+            Nop Instructions: 0.0% of Pipeline Slots
+            Other: 0.0% of Pipeline Slots
+        Heavy Operations: 0.0% of Pipeline Slots
+            Few Uops Instructions: 0.0% of Pipeline Slots
+            Microcode Sequencer: 0.0% of Pipeline Slots
+                Assists: 0.0% of Pipeline Slots
+                CISC: 0.0% of Pipeline Slots
+    Front-End Bound: 0.0% of Pipeline Slots
+        Front-End Latency: 0.0% of Pipeline Slots
+            ICache Misses: 0.0% of Clockticks
+            ITLB Overhead: 0.0% of Clockticks
+            Branch Resteers: 0.0% of Clockticks
+                Mispredicts Resteers: 0.0% of Clockticks
+                Clears Resteers: 0.0% of Clockticks
+                Unknown Branches: 0.0% of Clockticks
+            DSB Switches: 0.0% of Clockticks
+            Length Changing Prefixes: 0.0% of Clockticks
+            MS Switches: 0.0% of Clockticks
+        Front-End Bandwidth: 0.0% of Pipeline Slots
+            Front-End Bandwidth MITE: 0.0% of Pipeline Slots
+                Decoder-0 Alone: 0.0% of Pipeline Slots
+                %MITE_4wide: 0.0% of Clockticks
+            Front-End Bandwidth DSB: 0.0% of Pipeline Slots
+            (Info) DSB Coverage: 0.0%
+            (Info) DSB Misses: 0.0% of Pipeline Slots
+    Bad Speculation: 100.0% of Pipeline Slots
+     | A significant proportion of pipeline slots containing useful work are
+     | being cancelled. This can be caused by mispredicting branches or by
+     | machine clears. Note that this metric value may be highlighted due to
+     | Branch Resteers issue.
+     |
+        Branch Mispredict: 0.0% of Pipeline Slots
+        Machine Clears: 100.0% of Pipeline Slots
+    Back-End Bound: 0.0% of Pipeline Slots
+        Memory Bound: 0.0% of Pipeline Slots
+            L1 Bound: 0.0% of Clockticks
+                DTLB Overhead: 0.0% of Clockticks
+                    Load STLB Hit: 0.0% of Clockticks
+                    Load STLB Miss: 0.0% of Clockticks
+                Loads Blocked by Store Forwarding: 0.0% of Clockticks
+                Lock Latency: 0.0% of Clockticks
+                Split Loads: 0.0% of Clockticks
+                4K Aliasing: 0.0% of Clockticks
+                FB Full: 0.0% of Clockticks
+            L2 Bound
+            L3 Bound: 0.0% of Clockticks
+                Contested Accesses
+                Data Sharing
+                L3 Latency
+                SQ Full: 0.0% of Clockticks
+            DRAM Bound
+                Memory Bandwidth: 0.0% of Clockticks
+                Memory Latency: 0.0% of Clockticks
+                    Local Memory
+                    Remote Memory
+                    Remote Cache
+            Store Bound: 0.0% of Clockticks
+                Store Latency: 20.8% of Clockticks
+                False Sharing: 0.0% of Clockticks
+                Split Stores: 0.0%
+                Streaming Stores: 0.0% of Clockticks
+                DTLB Store Overhead
+                    Store STLB Hit
+                    Store STLB Miss
+        Core Bound: 0.0% of Pipeline Slots
+            Divider: 1.3% of Clockticks
+            Port Utilization: 0.0% of Clockticks
+                Cycles of 0 Ports Utilized: 0.0% of Clockticks
+                    Serializing Operations: 13.5% of Clockticks
+                        Slow Pause: 0.0% of Clockticks
+                    Mixing Vectors: 0.0% of Clockticks
+                Cycles of 1 Port Utilized: 0.0% of Clockticks
+                Cycles of 2 Ports Utilized: 0.0% of Clockticks
+                Cycles of 3+ Ports Utilized: 46.8% of Clockticks
+                    ALU Operation Utilization
+                        Port 0
+                        Port 1
+                        Port 5
+                        Port 6
+                    Load Operation Utilization
+                    Store Operation Utilization
+    Average CPU Frequency: 2.585 GHz
+    Total Thread Count: 66
+    Paused Time: 0s
+Effective CPU Utilization: 16.7%
+ | The metric value is low, which may signal a poor logical CPU cores
+ | utilization caused by load imbalance, threading runtime overhead, contended
+ | synchronization, or thread/process underutilization. Explore sub-metrics to
+ | estimate the efficiency of MPI and OpenMP parallelism or run the Locks and
+ | Waits analysis to identify parallel bottlenecks for other parallel runtimes.
+ |
+    Average Effective CPU Utilization: 10.689 out of 64
+Collection and Platform Info
+    Application Command Line: numactl "--cpunodebind=0" "--membind=0" "./winograd" "conf/small.conf" 
+    Operating System: 5.15.0-100-generic DISTRIB_ID=Ubuntu DISTRIB_RELEASE=22.04 DISTRIB_CODENAME=jammy DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
+    Computer Name: hepnode1
+    Result Size: 6.1 MB 
+    Collection start time: 15:05:49 24/03/2025 UTC
+    Collection stop time: 15:05:49 24/03/2025 UTC
+    Collector Type: Driverless Perf system-wide sampling
+    CPU
+        Name: Intel(R) Xeon(R) Processor code named Icelake
+        Frequency: 1.995 GHz
+        Logical CPU Count: 64
+        LLC size: 50.3 MB 
+        Cache Allocation Technology
+            Level 2 capability: not detected
+            Level 3 capability: available
+
+If you want to skip descriptions of detected performance issues in the report,
+enter: vtune -report summary -report-knob show-issues=false -r <my_result_dir>.
+Alternatively, you may view the report in the csv format: vtune -report
+<report_name> -format=csv.
+数据收集成功！生成报告...
+分析完成: uarch-exploration
+结果保存在: vtune_results/v0.3.2/uarch-exploration_small_20250324_230502
+
+
+
+===============================================
+ 所有分析完成！
+ 结束时间: Mon Mar 24 11:05:56 PM CST 2025
+ 结果位置: vtune_results/v0.3.2
+===============================================
+创建了索引文件: vtune_results/v0.3.2/index.html
+正在启动 VTune 后端服务，端口: 8080...
+VTune 后端服务已启动，PID: 1204468
+可通过浏览器访问: http://hepnode1:8080
+后端服务将持续运行12小时，之后自动停止
+VTune 分析完成。可使用以下命令停止后端服务:
+kill $(cat vtune_results/v0.3.2/backend_pid.txt)

@@ -1,0 +1,35 @@
+
+ Performance counter stats for './winograd conf/small.conf':
+
+          5,194.78 msec task-clock                #   13.590 CPUs utilized          
+             6,156      context-switches          #    1.185 K/sec                  
+             1,167      cpu-migrations            #  224.648 /sec                   
+           298,982      page-faults               #   57.554 K/sec                  
+     8,440,083,138      cycles                    #    1.625 GHz                      (53.56%)
+     5,541,395,895      instructions              #    0.66  insn per cycle           (61.28%)
+       997,590,306      branches                  #  192.037 M/sec                    (67.99%)
+         1,967,343      branch-misses             #    0.20% of all branches          (71.79%)
+    57,225,919,051      slots                     #   11.016 G/sec                    (74.75%)
+     8,533,624,100      topdown-retiring          #     14.7% retiring                (74.75%)
+     3,563,082,765      topdown-bad-spec          #      6.1% bad speculation         (74.75%)
+     1,326,389,584      topdown-fe-bound          #      2.3% frontend bound          (74.75%)
+    44,700,493,900      topdown-be-bound          #     76.9% backend bound           (74.75%)
+     2,079,847,420      L1-dcache-loads           #  400.372 M/sec                    (72.32%)
+       450,177,066      L1-dcache-load-misses     #   21.64% of all L1-dcache accesses  (73.87%)
+         5,717,138      LLC-loads                 #    1.101 M/sec                    (75.17%)
+         1,561,944      LLC-load-misses           #   27.32% of all LL-cache accesses  (78.51%)
+   <not supported>      L1-icache-loads                                             
+         5,772,362      L1-icache-load-misses                                         (37.34%)
+       963,848,135      dTLB-loads                #  185.542 M/sec                    (46.75%)
+           302,350      dTLB-load-misses          #    0.03% of all dTLB cache accesses  (43.08%)
+   <not supported>      iTLB-loads                                                  
+           175,168      iTLB-load-misses                                              (41.28%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       0.382260921 seconds time elapsed
+
+       4.205255000 seconds user
+       1.003994000 seconds sys
+
+
