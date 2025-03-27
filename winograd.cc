@@ -88,17 +88,6 @@ bool init_cublas() {
 // 高性能版 sgemm_cublas 函数
 void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C) 
 {
-    // 快速路径 - 跳过小矩阵
-    if (M < 32 || N < 32 || K < 32) {
-        sgemm(M, N, K, A, B, C);
-        return;
-    }
-    
-    // cuBLAS 不可用时回退到 CPU
-    if (!cublas_handle && !init_cublas()) {
-        sgemm(M, N, K, A, B, C);
-        return;
-    }
     
     // 设备内存指针
     float *d_A = nullptr, *d_B = nullptr, *d_C = nullptr;
@@ -126,19 +115,19 @@ void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, f
     // 执行矩阵乘法
     cublasSgemm(
         cublas_handle, 
-        CUBLAS_OP_T,       // 转置 B
+        CUBLAS_OP_N,       // 不转置 B
         CUBLAS_OP_T,       // 转置 A
-        M,                 // C 的行数
-        N,                 // C 的列数
+        N,                 // C 的行数
+        M,                 // C 的列数
         K,                 // 共同维度
         &alpha,
-        d_A,               // A 矩阵
-        K,                 // A 的主要步长
-        d_B,               // B 矩阵
-        N,                 // B 的主要步长
+        d_B,               
+        N,                 
+        d_A,               
+        M,                 
         &beta,
-        d_C,               // C 矩阵
-        M                  // C 的主要步长
+        d_C,               
+        M                 
     );
     
     // 复制结果回主机
@@ -652,9 +641,9 @@ void winograd_convolution(
 
   use_gpu = init_cublas();
   if(!use_gpu)
-    printf("CUDA init failed\n");
+    //printf("CUDA init failed\n");
   
-  #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max/2)
+  //#pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
   for (int64_t h = 0; h < ti.tile_in_h; ++h) {
     for (int64_t w = 0; w < ti.tile_in_w; ++w) {
       typedef float(*U_tensor_t)[ti.tile_in_w][us.oc][us.ic];
@@ -663,11 +652,11 @@ void winograd_convolution(
       U_tensor_t U_tensor = (U_tensor_t)U;
       V_tensor_t V_tensor = (V_tensor_t)V;
       M_tensor_t M_tensor = (M_tensor_t)M;
-      sgemm(us.oc,
+      sgemm_cublas(vs.num_tiles,
+            us.oc,
             us.ic,
-            vs.num_tiles,
-            (float *)(U_tensor[h][w]),
             (float *)(V_tensor[h][w]),
+            (float *)(U_tensor[h][w]),
             (float *)(M_tensor[h][w]));
     }
   }

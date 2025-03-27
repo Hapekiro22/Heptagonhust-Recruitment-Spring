@@ -14,7 +14,7 @@ else
     echo "Wrong Parameters!"
 fi
 
-directory="vtune_results/v$version-$CONFIG_FILE"
+directory="vtune_results/$version-$CONFIG_FILE"
 
 eval $(spack load --sh intel-oneapi-vtune)
 
