@@ -100,7 +100,7 @@ void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, f
         CHECK_CUDA_ERROR(cudaMalloc(&d_B, sizeof(float) * N * K));
         printf("d_B 分配成功\n");
         
-        CHECK_CUDA_ERROR(cudaMalloc(&d_C, sizeof(float) * N * M));
+        CHECK_CUDA_ERROR(cudaMalloc(&d_C, sizeof(float) * M * N));
         printf("d_C 分配成功\n");
         
         // 将数据从主机复制到设备
@@ -115,20 +115,20 @@ void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, f
         printf("正在执行 cublasSgemm (原始参数)...\n");
         // 修改为完全匹配 CPU 版本的调用
         CHECK_CUBLAS_ERROR(cublasSgemm(
-            cublas_handle, 
-            CUBLAS_OP_T,       // 转置 B
-            CUBLAS_OP_T,       // 转置 A
+            cublas_handle,       
+            CUBLAS_OP_T,       
+            CUBLAS_OP_N,       
             M,                 // C 的行数
             N,                 // C 的列数
             K,                 // 共同维度
             &alpha,
-            d_A,               // A 矩阵
-            K,                 // A 的主要步长
-            d_B,               // B 矩阵
-            N,                 // B 的主要步长
+            d_A,               
+            M,                 
+            d_B,               
+            K,                 
             &beta,
-            d_C,               // C 矩阵
-            M                  // C 的主要步长
+            d_C,               
+            M
         ));
         
         printf("cublasSgemm 执行成功，正在复制结果回主机...\n");
@@ -149,27 +149,22 @@ void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, f
 }
 // 符合标准矩阵乘法定义的 CPU 实现
 void sgemm_cpu(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C) {
-    // C(m,n) = sum_k A(m,k) * B(k,n)
-    // A 是 M×K, B 是 K×N, C 是 M×N
-    
-    // 初始化 C 为 0
-    for (int64_t m = 0; m < M; m++) {
-        for (int64_t n = 0; n < N; n++) {
-            C[m * N + n] = 0.0f;
+    typedef float(*A_tensor_t)[K];
+    typedef float(*B_tensor_t)[K];
+    typedef float(*C_tensor_t)[M];
+    A_tensor_t A_tensor = (A_tensor_t)A;
+    B_tensor_t B_tensor = (B_tensor_t)B;
+    C_tensor_t C_tensor = (C_tensor_t)C;
+  
+    for (int64_t m = 0; m < M; ++m) {
+      for (int64_t n = 0; n < N; ++n) {
+        C_tensor[n][m] = 0;
+        for (int64_t k = 0; k < K; ++k) {
+          C_tensor[n][m] += A_tensor[m][k] * B_tensor[n][k];
         }
+      }
     }
-    
-    // 计算矩阵乘法
-    for (int64_t m = 0; m < M; m++) {
-        for (int64_t n = 0; n < N; n++) {
-            float sum = 0.0f;
-            for (int64_t k = 0; k < K; k++) {
-                sum += A[m * K + k] * B[k * N + n];
-            }
-            C[m * N + n] = sum;
-        }
-    }
-}
+  }
 
 void destroy_cublas() {
     if(cublas_handle != nullptr) {
@@ -187,6 +182,16 @@ void print_matrix(const char* name, float *mat, int rows, int cols) {
         printf(cols > 6 ? "...\n" : "\n");
     }
     if (rows > 6) printf("...\n");
+}
+
+void print_matrix_sequence(const char* name, float *mat, int rows, int cols) {
+    printf("%s (%dx%d):\n", name, rows, cols);
+    for (int i = 0; i < rows*cols;i++) {
+        printf("%8.2f ", mat[i]);
+        if ((i + 1) % cols == 0) {
+            printf("\n");
+        }
+    }
 }
 
 void verify_results(float *C_gpu, float *C_cpu, int64_t M, int64_t N) {
@@ -213,10 +218,10 @@ int main() {
     
     // 测试不同大小的矩阵
     int sizes[][3] = {
-        {16, 16, 16},    // 小矩阵
+        {4, 2, 1},    // 小矩阵
         {64, 64, 64},    // 中等矩阵
         {128, 128, 128}, // 较大矩阵
-        {256, 256, 256}, // 更大矩阵
+        {512, 256, 256}, // 更大矩阵
         {512, 512, 512}  // 如果内存允许
     };
     
@@ -261,11 +266,21 @@ int main() {
         // 运行 CPU 参考版本
         printf("执行 CPU 矩阵乘法...\n");
         sgemm_cpu(M, N, K, A, B, C_cpu);
+
+        //转置C_gpu
+        /*float *C_gpu_transposed = (float*)malloc(sizeof(float) * M * N);
+    
+        // 转置 GPU 结果
+        for (int64_t m = 0; m < M; m++) {
+            for (int64_t n = 0; n < N; n++) {
+                C_gpu_transposed[n * M + m] = C_gpu[m * N + n];
+            }
+        }*/
         
         // 显示结果（仅对于小矩阵）
         if (M <= 16 && N <= 16) {
-            print_matrix("GPU 结果", C_gpu, N, M);
-            print_matrix("CPU 结果", C_cpu, N, M);
+            print_matrix_sequence("GPU 结果", C_gpu, N, M);
+            print_matrix_sequence("CPU 结果", C_cpu, N, M);
         }
         
         // 验证结果

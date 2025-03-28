@@ -1,0 +1,2 @@
+CUDA error at test_your_sgemm.cpp:135 - an illegal memory access was encountered
+无法查询 GPU 内存: an illegal memory access was encountered

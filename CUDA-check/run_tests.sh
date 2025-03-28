@@ -9,6 +9,8 @@
 export CUDA_VISIBLE_DEVICES=0
 export LD_LIBRARY_PATH=/usr/local/cuda/targets/x86_64-linux/lib:$LD_LIBRARY_PATH
 
+eval $(spack load --sh cuda@12.8.0)
+
 echo "=============== 环境信息 ==============="
 hostname
 date
