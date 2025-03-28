@@ -33,113 +33,82 @@ void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
 
+#define DEBUGs 1
+
 bool use_gpu = true;
 
 // 定义 cublas 句柄
 static cublasHandle_t cublas_handle = nullptr;
 
-// 简化的错误检查宏 - 仅在 DEBUG 模式下启用
-#ifdef DEBUG
+// CUDA_ERROR CHECK
 #define CHECK_CUDA_ERROR(call) { \
-  cudaError_t err = call; \
-  if (err != cudaSuccess) { \
-      fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(err)); \
+  cudaError_t err = call;      \
+  if (err != cudaSuccess) {    \
+      fprintf(stderr, "CUDA error at %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
       return; \
   } \
 }
 
+// cuBLAS_ERROR CHECK
 #define CHECK_CUBLAS_ERROR(call) { \
-  cublasStatus_t status = call; \
+  cublasStatus_t status = call;  \
   if (status != CUBLAS_STATUS_SUCCESS) { \
-      fprintf(stderr, "cuBLAS error: %d\n", status); \
+      fprintf(stderr, "cuBLAS error at %s:%d - code: %d\n", __FILE__, __LINE__, status); \
       return; \
   } \
 }
-#else
-#define CHECK_CUDA_ERROR(call) call
-#define CHECK_CUBLAS_ERROR(call) call
-#endif
 
-// 优化的 init_cublas 函数 - 避免重复初始化
+// 模拟 init_cublas 函数
 bool init_cublas() {
-  if(cublas_handle != nullptr) {
+
+    
+    cudaSetDevice(0);
+    //printf("成功设置 CUDA 设备 0\n");
+    
+    cublasCreate(&cublas_handle);
+    //printf("成功创建 cuBLAS 句柄\n");
+
     return true;
-  }
-  
-  int device_count = 0;
-  if (cudaGetDeviceCount(&device_count) != cudaSuccess || device_count == 0) {
-    return false;
-  }
-  
-  if (cudaSetDevice(0) != cudaSuccess) {
-    return false;
-  }
-  
-  if (cublasCreate(&cublas_handle) != CUBLAS_STATUS_SUCCESS) {
-    return false;
-  }
-  
-  // 设置 cuBLAS 流模式为非阻塞
-  cublasSetPointerMode(cublas_handle, CUBLAS_POINTER_MODE_HOST);
-  
-  return true;
 }
 
-// 高性能版 sgemm_cublas 函数
-void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C) 
+void sgemm_cublas(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C)
 {
-    
-    // 设备内存指针
-    float *d_A = nullptr, *d_B = nullptr, *d_C = nullptr;
-    
-    // 分配设备内存
-    if (cudaMalloc(&d_A, sizeof(float) * M * K) != cudaSuccess ||
-        cudaMalloc(&d_B, sizeof(float) * N * K) != cudaSuccess ||
-        cudaMalloc(&d_C, sizeof(float) * M * N) != cudaSuccess) {
-        // 内存分配失败时释放已分配内存
-        if (d_A) cudaFree(d_A);
-        if (d_B) cudaFree(d_B);
-        if (d_C) cudaFree(d_C);
-        sgemm(M, N, K, A, B, C);
-        return;
-    }
-    
-    // 复制数据到设备
-    cudaMemcpyAsync(d_A, A, sizeof(float) * M * K, cudaMemcpyHostToDevice);
-    cudaMemcpyAsync(d_B, B, sizeof(float) * N * K, cudaMemcpyHostToDevice);
-    
-    // 设置乘法参数
+
+    float *d_A, *d_B, *d_C;
+
+    cudaMalloc((void **)&d_A, sizeof(float) * M * K);
+    cudaMalloc((void **)&d_B, sizeof(float) * N * K);
+    cudaMalloc((void **)&d_C, sizeof(float) * M * N);
+    cudaMemcpy(d_A, A, M*K * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, N*K * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemset(d_C, 0, M*N * sizeof(float));
+
     const float alpha = 1.0f;
     const float beta = 0.0f;
-    
-    // 执行矩阵乘法
-    cublasSgemm(
-        cublas_handle, 
-        CUBLAS_OP_N,       // 不转置 B
-        CUBLAS_OP_T,       // 转置 A
-        N,                 // C 的行数
-        M,                 // C 的列数
-        K,                 // 共同维度
-        &alpha,
-        d_B,               
-        N,                 
-        d_A,               
-        M,                 
-        &beta,
-        d_C,               
-        M                 
-    );
-    
-    // 复制结果回主机
-    cudaMemcpyAsync(C, d_C, sizeof(float) * M * N, cudaMemcpyDeviceToHost);
-    
-    // 确保操作完成
-    cudaDeviceSynchronize();
-    
-    // 释放设备内存
+
+    cublasSgemm(cublas_handle,
+                CUBLAS_OP_T,
+                CUBLAS_OP_N,
+                M,
+                N,
+                K,
+                &alpha,
+                d_A,
+                K,
+                d_B,
+                K,
+                &beta,
+                d_C,
+                M);
+                
+
+    cudaMemcpy(C, d_C, N * M * sizeof(float), cudaMemcpyDeviceToHost);
+
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);
+    //destroy_cublas();
+
 }
 
 // 优化的资源释放
@@ -639,11 +608,9 @@ void winograd_convolution(
 
 //CUDA Prepare
 
-  use_gpu = init_cublas();
-  if(!use_gpu)
-    //printf("CUDA init failed\n");
+  bool use_cuda = init_cublas();
   
-  //#pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+  #pragma omp parallel for collapse(2) schedule(dynamic) 
   for (int64_t h = 0; h < ti.tile_in_h; ++h) {
     for (int64_t w = 0; w < ti.tile_in_w; ++w) {
       typedef float(*U_tensor_t)[ti.tile_in_w][us.oc][us.ic];
@@ -652,22 +619,27 @@ void winograd_convolution(
       U_tensor_t U_tensor = (U_tensor_t)U;
       V_tensor_t V_tensor = (V_tensor_t)V;
       M_tensor_t M_tensor = (M_tensor_t)M;
-      sgemm_cublas(vs.num_tiles,
+      
+      // 初始化 M_tensor[h][w] 为 0
+      memset(M_tensor[h][w], 0, sizeof(float) * us.oc * vs.num_tiles);
+      
+      // 根据是否使用 CUDA 选择实现
+        sgemm_cublas(vs.num_tiles,
             us.oc,
             us.ic,
             (float *)(V_tensor[h][w]),
             (float *)(U_tensor[h][w]),
             (float *)(M_tensor[h][w]));
+      
     }
   }
 
   output_transform(M, Y, ti, us.oc * vs.num_tiles);
   output_unpacking_store(Y, out, os, ti);
 
-//CUDA Destroy
-  if(use_gpu)
+  if(use_cuda) {
     destroy_cublas();
-
+  }
 
   free(packed_filter);
   free(packed_image);

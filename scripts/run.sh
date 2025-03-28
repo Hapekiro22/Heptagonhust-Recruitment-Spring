@@ -15,7 +15,7 @@ export OMP_NUM_THREADS=64
 
 # Note: Set CUDA environment variables
 export CUDA_VISIBLE_DEVICES=0
-export LD_LIBRARY_PATH=/usr/local/cuda/targets/x86_64-linux-gnu/lib:$LD_LIBRARY_PATH
+export D_LIBRARY_PATH=/usr/lLocal/cuda/targets/x86_64-linux-gnu/lib:$LD_LIBRARY_PATH
 
 # Note: numactl - Control NUMA policy for processes or shared memory, see `man numactl'.`
 # Note: perf-stat - Run a command and gather performance counter statistics, see `man perf stat'.
@@ -43,4 +43,4 @@ fi
 
 
 #numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 
-perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 1
+perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
