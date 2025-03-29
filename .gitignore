@@ -8,3 +8,5 @@ vtune_results/
 result_data/
 
 slurm-*
+
+nsys_results/
