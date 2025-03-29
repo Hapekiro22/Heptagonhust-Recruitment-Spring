@@ -43,8 +43,8 @@ else
 fi
 
 
-#numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
-perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
+numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
+#perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 
 
 #g++ driver.cc winograd.cc -std=c++11 ${CFLAG} ${CUDA_INCLUDES} ${CUDA_LIBS} -o winograd
