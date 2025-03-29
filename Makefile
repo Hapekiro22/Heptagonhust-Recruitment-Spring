@@ -1,4 +1,4 @@
-CFLAG = -O2 -g -Wall -mavx -fopenmp -mfma -mavx2
+CFLAG = -O3 -g -Wall -mavx -fopenmp -mfma -mavx2
 CUDA_PATH = /usr/local/cuda
 CUDA_INCLUDES = -I${CUDA_PATH}/include
 CUDA_LIBS = -L${CUDA_PATH}/targets/x86_64-linux/lib -lcudart -lcublas
