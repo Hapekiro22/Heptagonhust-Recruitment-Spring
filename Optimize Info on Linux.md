@@ -146,5 +146,21 @@ nsys数据说明，最大的性能瓶颈在数据传输上
 尝试方向1：
     采用pinned memory
 
+    参考；https://blog.csdn.net/guaaaaaaa/article/details/130876447
+        https://developer.nvidia.com/zh-cn/blog/how-optimize-data-transfers-cuda-cc/
+
+    方向1.1：采用页锁定和异步流方法结合
+        有一定优化效果(v0.5.1)-(v0.5.0-batched) - (v0.4.9)
+    
+
 尝试方向2：
     半合并，即局部分块处理，避免数据过大超出带宽
+
+尝试方向3：
+    彻底在gpu上运行，消除大量通信成本
+
+## v0.5.1
+    采用5.0尝试1，此外考虑到内存的多次分配问题，直接创建一整个内存池
+    避免多次重复分配
+    很好的解决了内存读取问题，
+    当前加速比：115x 算力：604.00GFlops

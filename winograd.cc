@@ -24,19 +24,24 @@ const int64_t threads_min = 2;
 //-------------------------------cores define-------------------------------------//
 
 
+
 void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B, float *C);
 
-//-------------------------------CUDA define-------------------------------------//
+//-------------------------------CUDA define---------------------------------------//
 
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
 
+
 #define DEBUGs 1
 
 bool use_gpu = true;
 bool init_flag = false;
+
+// CUDA流
+static cudaStream_t g_stream = NULL;
 
 // 定义 cublas 句柄
 static cublasHandle_t cublas_handle = nullptr;
@@ -212,6 +217,81 @@ void sgemm_cublas_batched(const int64_t M, const int64_t N, const int64_t K,
 }
 
 //-------------------------------CUDA define-------------------------------------//
+
+//-------------------------------MEMORY define-------------------------------------//
+
+
+// 内存池全局变量
+static bool pool_initialized = false;
+
+// GPU内存
+static float *g_d_A = nullptr;
+static float *g_d_B = nullptr;
+static float *g_d_C = nullptr;
+static size_t g_d_A_size = 0;
+static size_t g_d_B_size = 0;
+static size_t g_d_C_size = 0;
+
+// 页锁定内存
+static float *g_pinned_U = nullptr;
+static float *g_pinned_V = nullptr;
+static float *g_pinned_M = nullptr;
+static size_t g_pinned_U_size = 0;
+static size_t g_pinned_V_size = 0;
+static size_t g_pinned_M_size = 0;
+
+// 确保内存大小足够，如果不足则重新分配
+bool ensure_memory_size(void **mem, size_t *current_size, size_t required_size, bool is_pinned) {
+  if (*current_size >= required_size) {
+      return true; // 当前内存足够
+  }
+  
+  // 释放原有内存
+  if (*mem) {
+      if (is_pinned) {
+          cudaFreeHost(*mem);
+      } else {
+          cudaFree(*mem);
+      }
+      *mem = nullptr;
+  }
+  
+  // 分配新内存
+  cudaError_t err;
+  if (is_pinned) {
+      err = cudaMallocHost(mem, required_size);
+  } else {
+      err = cudaMalloc(mem, required_size);
+  }
+  
+  if (err != cudaSuccess) {
+      *current_size = 0;
+      return false;
+  }
+  
+  *current_size = required_size;
+  return true;
+}
+
+// 释放内存池资源（程序退出前调用）
+void __attribute__((destructor)) cleanup_memory_pool() {
+  if (g_pinned_U) cudaFreeHost(g_pinned_U);
+  if (g_pinned_V) cudaFreeHost(g_pinned_V);
+  if (g_pinned_M) cudaFreeHost(g_pinned_M);
+  if (g_d_A) cudaFree(g_d_A);
+  if (g_d_B) cudaFree(g_d_B);
+  if (g_d_C) cudaFree(g_d_C);
+  if (g_stream) cudaStreamDestroy(g_stream);
+  
+  g_pinned_U = g_pinned_V = g_pinned_M = nullptr;
+  g_d_A = g_d_B = g_d_C = nullptr;
+  g_stream = nullptr;
+  g_pinned_U_size = g_pinned_V_size = g_pinned_M_size = 0;
+  g_d_A_size = g_d_B_size = g_d_C_size = 0;
+  pool_initialized = false;
+}
+
+//-----------------------------------MEMORY define---------------------------------//
 
 
 
@@ -755,7 +835,7 @@ void winograd_convolution_single(
 }
 
 
-void winograd_convolution(float *__restrict__ image, const int image_height,
+void winograd_convolution_ex(float *__restrict__ image, const int image_height,
   const int image_width, const int input_channel_num,
   float *__restrict__ filter, const int output_channel_num,
   const int batch_num, float *__restrict__ out) {
@@ -904,4 +984,280 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
     free(V);
     free(M);
     free(Y);
+}
+
+void winograd_convolution_withoutpool(float *__restrict__ image, const int image_height,
+  const int image_width, const int input_channel_num,
+  float *__restrict__ filter, const int output_channel_num,
+  const int batch_num, float *__restrict__ out) {
+    // 基本数据准备保持不变
+    const image_shape_t is = {.bs = batch_num, .ic = input_channel_num, .h = image_height, .w = image_width};
+    const filter_shape_t fs = {.oc = output_channel_num, .ic = input_channel_num, .h = FLT_H, .w = FLT_W};
+    const out_shape_t os = get_output_shape(is, fs);
+    const tiling_info_t ti = get_tiling_info(is, os);
+    const U_shape_t us = get_U_shape(fs, ti);
+    const V_shape_t vs = get_V_shape(is, ti);
+
+    // 创建 CUDA 流
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+    
+    // 设置 cublas 流
+    cublasSetStream(cublas_handle, stream);
+
+    // 分配和初始化内存（使用页锁定内存）
+    float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
+    
+    // 使用页锁定内存替代普通内存
+    float *pinned_U = nullptr, *pinned_V = nullptr;
+    float *pinned_M = nullptr, *pinned_Y = nullptr;
+    
+    cudaMallocHost((void**)&pinned_U, sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic);
+    cudaMallocHost((void**)&pinned_V, sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.num_tiles * vs.ic);
+    cudaMallocHost((void**)&pinned_M, sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles);
+    
+    // 普通内存
+    float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
+    float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
+
+    // 准备数据阶段保持不变
+    filter_packing(filter, packed_filter, fs);
+    filter_transform(packed_filter, pinned_U, fs, us, us.oc * us.ic);
+
+    image_packing(image, packed_image, is, ti);
+    image_transform(packed_image, pinned_V, vs, ti, vs.ic * vs.num_tiles);
+
+    int batch_size = ti.tile_in_h * ti.tile_in_w;
+
+    // 初始化 cuBLAS (如果还没有初始化)
+    if(!init_flag) {
+        init_cublas();
+        init_flag = true;
+    }
+
+    // 分配GPU内存
+    float *d_A = nullptr, *d_B = nullptr, *d_C = nullptr;
+    const int m = vs.num_tiles;  // 输出矩阵的行数
+    const int n = us.oc;        // 输出矩阵的列数
+    const int k = us.ic;        // 内部维度
+
+    // 计算每个矩阵的大小
+    const long long A_size = vs.num_tiles * vs.ic;  // V矩阵大小
+    const long long B_size = us.oc * us.ic;        // U矩阵大小
+    const long long C_size = vs.num_tiles * us.oc;  // M矩阵大小
+
+    // 分配GPU内存
+    cudaMalloc((void**)&d_A, batch_size * A_size * sizeof(float));
+    cudaMalloc((void**)&d_B, batch_size * B_size * sizeof(float));
+    cudaMalloc((void**)&d_C, batch_size * C_size * sizeof(float));
+
+    // 使用异步内存复制将数据传输到GPU
+    cudaMemcpyAsync(d_A, pinned_V, batch_size * A_size * sizeof(float), 
+                   cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(d_B, pinned_U, batch_size * B_size * sizeof(float), 
+                   cudaMemcpyHostToDevice, stream);
+
+    // 设置前导维度和步长
+    int lda = k;        // V矩阵的前导维度
+    int ldb = k;        // U矩阵的前导维度
+    int ldc = m;        // M矩阵的前导维度
+
+    // 步长 - 每个矩阵的大小（元素数量）
+    long long strideA = A_size;
+    long long strideB = B_size;
+    long long strideC = C_size;
+
+    // 执行批处理矩阵乘法
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
+
+    // 使用带步长的批处理GEMM (在同一流中执行)
+    cublasGemmStridedBatchedEx(
+    cublas_handle,
+    CUBLAS_OP_T,     // A转置
+    CUBLAS_OP_N,     // B不转置
+    m,               // 矩阵C的行数(vs.num_tiles)
+    n,               // 矩阵C的列数(us.oc)
+    k,               // 内部维度(us.ic)
+    &alpha,          // 缩放因子
+    d_A,             // V矩阵起始地址
+    CUDA_R_32F,      // 数据类型:float
+    k,               // V矩阵的前导维度
+    strideA,         // V矩阵序列的步长
+    d_B,             // U矩阵起始地址
+    CUDA_R_32F,      // 数据类型:float
+    k,               // U矩阵的前导维度
+    strideB,         // U矩阵序列的步长
+    &beta,           // 缩放因子
+    d_C,             // M矩阵起始地址
+    CUDA_R_32F,      // 数据类型:float
+    m,               // M矩阵的前导维度
+    strideC,         // M矩阵序列的步长
+    batch_size,      // 批次数量
+    CUDA_R_32F,      // 计算类型:float
+    CUBLAS_GEMM_DEFAULT // 使用默认算法
+    );
+
+    // 异步将结果复制回主机（使用页锁定内存）
+    cudaMemcpyAsync(pinned_M, d_C, batch_size * C_size * sizeof(float), 
+                  cudaMemcpyDeviceToHost, stream);
+    
+    // 在流上同步，确保传输完成
+    cudaStreamSynchronize(stream);
+    
+    // 输出处理保持不变
+    output_transform(pinned_M, Y, ti, us.oc * vs.num_tiles);
+    output_unpacking_store(Y, out, os, ti);
+
+    // 释放GPU资源
+    //cudaFree(d_A);
+    //cudaFree(d_B);
+    //cudaFree(d_C);
+    
+    // 释放页锁定内存
+    //cudaFreeHost(pinned_U);
+    //cudaFreeHost(pinned_V);
+    //cudaFreeHost(pinned_M);
+    
+    // 销毁流
+    //cudaStreamDestroy(stream);
+
+    // 释放普通内存
+    free(packed_filter);
+    free(packed_image);
+    free(Y);
+}
+
+void winograd_convolution(float *__restrict__ image, const int image_height,
+  const int image_width, const int input_channel_num,
+  float *__restrict__ filter, const int output_channel_num,
+  const int batch_num, float *__restrict__ out) {
+    // 基本数据准备保持不变
+    const image_shape_t is = {.bs = batch_num, .ic = input_channel_num, .h = image_height, .w = image_width};
+    const filter_shape_t fs = {.oc = output_channel_num, .ic = input_channel_num, .h = FLT_H, .w = FLT_W};
+    const out_shape_t os = get_output_shape(is, fs);
+    const tiling_info_t ti = get_tiling_info(is, os);
+    const U_shape_t us = get_U_shape(fs, ti);
+    const V_shape_t vs = get_V_shape(is, ti);
+
+    int batch_size = ti.tile_in_h * ti.tile_in_w;
+    const int m = vs.num_tiles;  // 输出矩阵的行数
+    const int n = us.oc;        // 输出矩阵的列数
+    const int k = us.ic;        // 内部维度
+
+    // 计算所需内存大小
+    const long long A_size = vs.num_tiles * vs.ic;  // V矩阵大小
+    const long long B_size = us.oc * us.ic;        // U矩阵大小
+    const long long C_size = vs.num_tiles * us.oc;  // M矩阵大小
+    
+    size_t pinned_U_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic;
+    size_t pinned_V_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.num_tiles * vs.ic;
+    size_t pinned_M_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles;
+    
+    size_t d_A_req_size = sizeof(float) * batch_size * A_size;
+    size_t d_B_req_size = sizeof(float) * batch_size * B_size;
+    size_t d_C_req_size = sizeof(float) * batch_size * C_size;
+    
+    // 初始化 cuBLAS (如果还没有初始化)
+    if(!init_flag) {
+        init_cublas();
+        init_flag = true;
+    }
+    
+    // 初始化内存池（如果是第一次使用）
+    if (!pool_initialized) {
+        // 创建CUDA流
+        if (g_stream == NULL && cudaStreamCreate(&g_stream) != cudaSuccess) {
+            fprintf(stderr, "Failed to create CUDA stream\n");
+            return;
+        }
+        
+        // 标记为已初始化
+        pool_initialized = true;
+    }
+    
+    // 确保所有内存大小足够
+    bool memory_ok = 
+        ensure_memory_size((void**)&g_pinned_U, &g_pinned_U_size, pinned_U_req_size, true) &&
+        ensure_memory_size((void**)&g_pinned_V, &g_pinned_V_size, pinned_V_req_size, true) &&
+        ensure_memory_size((void**)&g_pinned_M, &g_pinned_M_size, pinned_M_req_size, true) &&
+        ensure_memory_size((void**)&g_d_A, &g_d_A_size, d_A_req_size, false) &&
+        ensure_memory_size((void**)&g_d_B, &g_d_B_size, d_B_req_size, false) &&
+        ensure_memory_size((void**)&g_d_C, &g_d_C_size, d_C_req_size, false);
+    
+    
+    // 设置 cublas 流
+    cublasSetStream(cublas_handle, g_stream);
+
+    // 普通内存分配（这些较小，可以每次重新分配）
+    float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
+    float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
+    float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
+
+    // 准备数据阶段保持不变
+    filter_packing(filter, packed_filter, fs);
+    filter_transform(packed_filter, g_pinned_U, fs, us, us.oc * us.ic);
+
+    image_packing(image, packed_image, is, ti);
+    image_transform(packed_image, g_pinned_V, vs, ti, vs.ic * vs.num_tiles);
+
+    // 使用异步内存复制将数据传输到GPU
+    cudaMemcpyAsync(g_d_A, g_pinned_V, batch_size * A_size * sizeof(float), 
+                   cudaMemcpyHostToDevice, g_stream);
+    cudaMemcpyAsync(g_d_B, g_pinned_U, batch_size * B_size * sizeof(float), 
+                   cudaMemcpyHostToDevice, g_stream);
+
+    // 步长 - 每个矩阵的大小（元素数量）
+    long long strideA = A_size;
+    long long strideB = B_size;
+    long long strideC = C_size;
+
+    // 执行批处理矩阵乘法
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
+
+    // 使用带步长的批处理GEMM (在同一流中执行)
+    cublasGemmStridedBatchedEx(
+        cublas_handle,
+        CUBLAS_OP_T,     // A转置
+        CUBLAS_OP_N,     // B不转置
+        m,               // 矩阵C的行数(vs.num_tiles)
+        n,               // 矩阵C的列数(us.oc)
+        k,               // 内部维度(us.ic)
+        &alpha,          // 缩放因子
+        g_d_A,           // V矩阵起始地址
+        CUDA_R_32F,      // 数据类型:float
+        k,               // V矩阵的前导维度
+        strideA,         // V矩阵序列的步长
+        g_d_B,           // U矩阵起始地址
+        CUDA_R_32F,      // 数据类型:float
+        k,               // U矩阵的前导维度
+        strideB,         // U矩阵序列的步长
+        &beta,           // 缩放因子
+        g_d_C,           // M矩阵起始地址
+        CUDA_R_32F,      // 数据类型:float
+        m,               // M矩阵的前导维度
+        strideC,         // M矩阵序列的步长
+        batch_size,      // 批次数量
+        CUDA_R_32F,      // 计算类型:float
+        CUBLAS_GEMM_DEFAULT // 使用默认算法
+    );
+
+    // 异步将结果复制回主机（使用页锁定内存）
+    cudaMemcpyAsync(g_pinned_M, g_d_C, batch_size * C_size * sizeof(float), 
+                  cudaMemcpyDeviceToHost, g_stream);
+    
+    // 在流上同步，确保传输完成
+    cudaStreamSynchronize(g_stream);
+    
+    // 输出处理保持不变
+    output_transform(g_pinned_M, Y, ti, us.oc * vs.num_tiles);
+    output_unpacking_store(Y, out, os, ti);
+
+    // 释放普通内存
+    free(packed_filter);
+    free(packed_image);
+    free(Y);
+    
+    // 注意：不释放内存池资源，它们会在程序退出时自动释放
 }
