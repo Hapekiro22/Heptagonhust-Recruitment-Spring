@@ -50,7 +50,7 @@ BASE_RESULT_DIR="vtune_results/$VERSION-$TEST_NAME"
 mkdir -p "$BASE_RESULT_DIR"
 
 # 加载 VTune 环境
-eval $(spack load --sh vtune)
+eval $(spack load --sh intel-oneapi-vtune)
 
 # 检查 VTune 是否成功加载
 if ! command -v vtune &> /dev/null; then
@@ -103,7 +103,7 @@ RESULT_LOG="$BASE_RESULT_DIR/analysis_log_${TIMESTAMP}.txt"
         echo "收集数据中，请等待..."
         
         # 使用 numactl 绑定到单个 NUMA 节点运行 VTune 分析
-        vtune -collect $ANALYSIS_TYPE -result-dir "$RESULT_DIR" -- numactl --cpunodebind=0 --membind=0 ./winograd $CONFIG_FILE
+        vtune -collect $ANALYSIS_TYPE -result-dir "$RESULT_DIR" -- numactl --cpunodebind=0-3 --membind=0-3 ./winograd $CONFIG_FILE
         
         # 检查分析是否成功
         if [ $? -eq 0 ]; then

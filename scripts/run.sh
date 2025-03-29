@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -n 1
 #SBATCH -o slurm-output/winograd-job-%j.out
-#SBATCH -e slurm-error/slurm-error-1/winograd-job-%j.err
+#SBATCH -e slurm-error/winograd-job-%j.err
 #SBATCH -c 64
 #SBATCH --exclusive
 #SBATCH --exclude hepnode0
@@ -15,14 +15,15 @@ export OMP_NUM_THREADS=64
 
 # Note: Set CUDA environment variables
 export CUDA_VISIBLE_DEVICES=0
-export D_LIBRARY_PATH=/usr/lLocal/cuda/targets/x86_64-linux-gnu/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/usr/local/cuda/targets/x86_64-linux/lib:$LD_LIBRARY_PATH
+
+eval $(spack load --sh cuda@12.8.0)
 
 # Note: numactl - Control NUMA policy for processes or shared memory, see `man numactl'.`
 # Note: perf-stat - Run a command and gather performance counter statistics, see `man perf stat'.
 
 # "Parameters: [version:vx.x.x] [input_config(0/1)]"
 
-eval $(spack load --sh cuda@12.8.0)
 nvcc --version
 
 directory=result_data
@@ -42,5 +43,8 @@ else
 fi
 
 
-#numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 
+#numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
+
+
+#g++ driver.cc winograd.cc -std=c++11 ${CFLAG} ${CUDA_INCLUDES} ${CUDA_LIBS} -o winograd
