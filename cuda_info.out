@@ -1,0 +1,92 @@
+======================= CUDA 信息查询 =======================
+主机名: hepnode1
+执行日期: Sat Mar 29 11:14:15 AM CST 2025
+======================= 环境变量 =======================
+CUDA_HOME: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/cuda-12.8.0-vphbzjdsorewbmnlbe74g6hqtz3guuig
+PATH: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/cuda-12.8.0-vphbzjdsorewbmnlbe74g6hqtz3guuig/bin:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/cuda-12.8.0-vphbzjdsorewbmnlbe74g6hqtz3guuig/bin:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/libxml2-2.10.3-mjdzl6onsixna35aduddwmlf4qnysmxd/bin:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/xz-5.4.6-qyiw4t5tav32aquw2q3ymucuss6txqn7/bin:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64:/data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64:/data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand
+LD_LIBRARY_PATH: 
+======================= CUDA 安装位置 =======================
+CUDA软链接指向: lrwxrwxrwx 1 root root 22 Jul 26  2024 /usr/local/cuda -> /etc/alternatives/cuda
+CUDA可执行文件位置: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/cuda-12.8.0-vphbzjdsorewbmnlbe74g6hqtz3guuig/bin/nvcc
+CUDA版本: nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Wed_Jan_15_19:20:09_PST_2025
+Cuda compilation tools, release 12.8, V12.8.61
+Build cuda_12.8.r12.8/compiler.35404655_0
+======================= CUDA 库文件 =======================
+CUDA运行时库: 	libcudart.so.12 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.12
+	libcudart.so.11.0 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcudart.so.11.0
+	libcudart.so (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so
+	libcudart.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libcudart.so
+CUBLAS库: 	libcublasLt.so.12 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so.12
+	libcublasLt.so.11 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcublasLt.so.11
+	libcublasLt.so (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so
+	libcublasLt.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libcublasLt.so
+	libcublas.so.12 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so.12
+	libcublas.so.11 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcublas.so.11
+	libcublas.so (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so
+	libcublas.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libcublas.so
+======================= GPU 设备信息 =======================
+Sat Mar 29 11:14:15 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA L40                     On  |   00000000:4B:00.0 Off |                    0 |
+| N/A   36C    P8             36W /  300W |       1MiB /  46068MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA L40                     On  |   00000000:B1:00.0 Off |                    0 |
+| N/A   27C    P8             35W /  300W |       1MiB /  46068MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+======================= CUDA 头文件位置 =======================
+/usr/include/linux/cuda.h
+/usr/include/hwloc/cuda.h
+/usr/include/cuda.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cuda.h
+======================= 可能的 CUDA 路径 =======================
+/usr/include/thrust/system/cuda
+/usr/include/cuda
+/usr/lib/cuda
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cuda
+/usr/local/cuda-12.4/targets/x86_64-linux/include/thrust/system/cuda
+/usr/share/doc/libthrust-dev/examples/cuda
+/opt/hpcx/ompi/include/openmpi/opal/mca/common/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/REDIST/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/comm_libs/12.4/hpcx/hpcx-2.19/ompi/include/openmpi/opal/mca/common/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/comm_libs/openmpi/openmpi-3.1.5/include/openmpi/ompi/mpiext/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/include-stdpar/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/include-stdpar/thrust/system/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/targets/x86_64-linux/include/cuda
+/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/targets/x86_64-linux/include/thrust/system/cuda
+======================= 模块系统检查 =======================
+模块系统不可用或未找到 CUDA 模块
+======================= 检查 cuBLAS 可用性 =======================
+/usr/include/cublas.h
+/usr/include/cublasLt.h
+/usr/include/cublasXt.h
+/usr/include/cublas_api.h
+/usr/include/cublas_v2.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublas.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublasLt.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublasXt.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublas_api.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublas_v2.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublas.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublasLt.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublasXt.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublas_api.h
+/usr/local/cuda-12.4/targets/x86_64-linux/include/cublas_v2.h
