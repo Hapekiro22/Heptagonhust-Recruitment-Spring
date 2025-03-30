@@ -9,4 +9,7 @@ result_data/
 
 slurm-*
 
+nsys_results/
 
+*.json
+*.sqlite
