@@ -250,14 +250,14 @@ bool ensure_memory_size(void **mem, size_t *current_size, size_t required_size, 
       return true; // 当前内存足够
   }
 
-  printf("current_size: %zu, required_size: %zu\n", *current_size, required_size);
+  //printf("current_size: %zu, required_size: %zu\n", *current_size, required_size);
   
   // 释放原有内存
   if (*mem) {
       if (is_pinned) {
           cudaFreeHost(*mem);
       } else {
-          printf("Freeing device memory\n");
+          //printf("Freeing device memory\n");
           cudaFree(*mem);
       }
       *mem = nullptr;
@@ -266,14 +266,14 @@ bool ensure_memory_size(void **mem, size_t *current_size, size_t required_size, 
   // 分配新内存
   cudaError_t err;
   if (is_pinned) {
-      printf("Allocating pinned memory\n");
+      //printf("Allocating pinned memory\n");
       err = cudaMallocHost(mem, required_size);
   } else {
       err = cudaMalloc(mem, required_size);
   }
   
   if (err != cudaSuccess) {
-      printf( "Error allocating memory: %s\n", cudaGetErrorString(err));
+      //printf( "Error allocating memory: %s\n", cudaGetErrorString(err));
       *current_size = 0;
       return false;
   }

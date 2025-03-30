@@ -2,7 +2,7 @@
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --gres=gpu:1
-#SBATCH -o cuda_info.out
+#SBATCH -o cuda_info-hepnode0.out
 #SBATCH -e cuda_info.err
 #SBATCH --exclude hepnode0
 

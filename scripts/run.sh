@@ -4,7 +4,7 @@
 #SBATCH -e slurm-error/winograd-job-%j.err
 #SBATCH -c 64
 #SBATCH --exclusive
-#SBATCH --exclude hepnode0
+#SBATCH --exclude hepnode0,hepnode3,hepnode2
 #SBATCH --gres=gpu:1
 
 # Note: How to run this script on slurm: `sbatch ./run.sh'.
