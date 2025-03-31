@@ -43,7 +43,7 @@ else
 fi
 
 
-numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 1
+numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 #perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 
 
