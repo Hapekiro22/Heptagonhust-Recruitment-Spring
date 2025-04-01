@@ -5,7 +5,7 @@
 #SBATCH -e nsys_results/err/nsys-job-%j.err
 #SBATCH -c 64
 #SBATCH --exclusive
-#SBATCH --exclude hepnode0
+#SBATCH --exclude hepnode0,hepnode2,hepnode3
 #SBATCH --gres=gpu:1
 
 # 参数检查
