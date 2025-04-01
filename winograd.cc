@@ -82,9 +82,7 @@ bool init_cublas() {
             if(g_streams[i] != NULL) {
                 CHECK_CUDA_ERROR(cudaStreamDestroy(g_streams[i]));
             }
-            if(cublas_handles[i] != NULL) {
-                CHECK_CUBLAS_ERROR(cublasDestroy(cublas_handles[i]));
-            }
+            CHECK_CUBLAS_ERROR(cublasCreate(&cublas_handles[i]));
             CHECK_CUDA_ERROR(cudaStreamCreate(&g_streams[i]));
             CHECK_CUBLAS_ERROR(cublasSetStream(cublas_handles[i], g_streams[i]));
             CHECK_CUDA_ERROR(cudaEventCreate(&events[i]));
@@ -1418,7 +1416,7 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
     int batch_size = ti.tile_in_h * ti.tile_in_w;
     const int m = vs.num_tiles;  // 输出矩阵的行数
     const int n = us.oc;        // 输出矩阵的列数
-    const int k = us.ic;        // 内部维度
+    const int k = us.ic;    // 内部维度
 
     const int cpu_limit = 256 * 256 * 512; // CPU限制
     if(m*n*k < cpu_limit)
