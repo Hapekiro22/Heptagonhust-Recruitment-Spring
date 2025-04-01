@@ -43,17 +43,22 @@ bool use_gpu = true;
 bool init_flag = false;
 
 // CUDA流
+const int stream_count = 4;
 static cudaStream_t g_stream = NULL;
+static cudaStream_t g_streams[stream_count] = {NULL};
+
+static cudaEvent_t events[stream_count] = {NULL};
 
 // 定义 cublas 句柄
 static cublasHandle_t cublas_handle = nullptr;
+static cublasHandle_t cublas_handles[stream_count] = {nullptr};
 
 // CUDA_ERROR CHECK
 #define CHECK_CUDA_ERROR(call) { \
   cudaError_t err = call;      \
   if (err != cudaSuccess) {    \
       fprintf(stderr, "CUDA error at %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
-      return; \
+      return false; \
   } \
 }
 
@@ -62,7 +67,7 @@ static cublasHandle_t cublas_handle = nullptr;
   cublasStatus_t status = call;  \
   if (status != CUBLAS_STATUS_SUCCESS) { \
       fprintf(stderr, "cuBLAS error at %s:%d - code: %d\n", __FILE__, __LINE__, status); \
-      return; \
+      return false; \
   } \
 }
 
@@ -70,10 +75,26 @@ static cublasHandle_t cublas_handle = nullptr;
 bool init_cublas() {
     
     //cudaSetDevice(0);
-    //printf("成功设置 CUDA 设备 0\n");
+    //printf("成功设置 CUDA 设备 0\n");;
+
+    if(stream_count > 1) {
+        for (int i = 0; i < stream_count; i++) {
+            if(g_streams[i] != NULL) {
+                CHECK_CUDA_ERROR(cudaStreamDestroy(g_streams[i]));
+            }
+            if(cublas_handles[i] != NULL) {
+                CHECK_CUBLAS_ERROR(cublasDestroy(cublas_handles[i]));
+            }
+            CHECK_CUDA_ERROR(cudaStreamCreate(&g_streams[i]));
+            CHECK_CUBLAS_ERROR(cublasSetStream(cublas_handles[i], g_streams[i]));
+            CHECK_CUDA_ERROR(cudaEventCreate(&events[i]));
+        }
+    } 
     
-    cublasCreate(&cublas_handle);
-    //printf("成功创建 cuBLAS 句柄\n");
+    else {
+        CHECK_CUDA_ERROR(cudaStreamCreate(&g_stream));
+        CHECK_CUBLAS_ERROR(cublasSetStream(cublas_handle, g_stream));
+    }
 
     return true;
 }
@@ -126,96 +147,18 @@ void destroy_cublas() {
     }
 }
 
-void sgemm_cublas_batched(const int64_t M, const int64_t N, const int64_t K, 
-  float *U_data, float *V_data, float *M_data,
-  const tiling_info_t ti) {
-      const int batch_size = ti.tile_in_h * ti.tile_in_w;
-
-      // 准备设备内存指针数组
-      float **h_A_array = (float**)malloc(batch_size * sizeof(float*));
-      float **h_B_array = (float**)malloc(batch_size * sizeof(float*));
-      float **h_C_array = (float**)malloc(batch_size * sizeof(float*));
-
-      float **d_A_array, **d_B_array, **d_C_array;
-      float *d_A, *d_B, *d_C;
-
-      // A、B、C 的大小（以元素为单位）
-      const int A_size = K * M;  // V 矩阵: vs.ic * vs.num_tiles
-      const int B_size = K * N;  // U 矩阵: us.ic * us.oc
-      const int C_size = M * N;  // M 矩阵: vs.num_tiles * us.oc
-
-      // 分配设备内存
-      cudaMalloc((void**)&d_A, batch_size * A_size * sizeof(float));
-      cudaMalloc((void**)&d_B, batch_size * B_size * sizeof(float));
-      cudaMalloc((void**)&d_C, batch_size * C_size * sizeof(float));
-      cudaMalloc((void**)&d_A_array, batch_size * sizeof(float*));
-      cudaMalloc((void**)&d_B_array, batch_size * sizeof(float*));
-      cudaMalloc((void**)&d_C_array, batch_size * sizeof(float*));
-
-      // 复制数据到设备并设置指针数组
-      for (int idx = 0; idx < batch_size; idx++) {
-      int h = idx / ti.tile_in_w;
-      int w = idx % ti.tile_in_w;
-
-      // 计算V, U, M在大数组中的偏移
-      float *V_ptr = V_data + idx * A_size;
-      float *U_ptr = U_data + idx * B_size;
-      float *M_ptr = M_data + idx * C_size;
-
-      // 将V, U, M复制到设备内存
-      cudaMemcpy(d_A + idx * A_size, V_ptr, A_size * sizeof(float), cudaMemcpyHostToDevice);
-      cudaMemcpy(d_B + idx * B_size, U_ptr, B_size * sizeof(float), cudaMemcpyHostToDevice);
-
-      // 设置指针数组
-      h_A_array[idx] = d_A + idx * A_size;
-      h_B_array[idx] = d_B + idx * B_size;
-      h_C_array[idx] = d_C + idx * C_size;
+void destroy_multi_streams() {
+  for (int i = 0; i < stream_count; i++) {
+      if (cublas_handles[i] != NULL) {
+          cublasDestroy(cublas_handles[i]);
+          cublas_handles[i] = NULL;
       }
-
-      // 将指针数组复制到设备
-      cudaMemcpy(d_A_array, h_A_array, batch_size * sizeof(float*), cudaMemcpyHostToDevice);
-      cudaMemcpy(d_B_array, h_B_array, batch_size * sizeof(float*), cudaMemcpyHostToDevice);
-      cudaMemcpy(d_C_array, h_C_array, batch_size * sizeof(float*), cudaMemcpyHostToDevice);
-
-      // 执行批处理矩阵乘法
-      const float alpha = 1.0f;
-      const float beta = 0.0f;
-
-      cublasSgemmBatched(cublas_handle,
-      CUBLAS_OP_T,
-      CUBLAS_OP_N,
-      M,  // vs.num_tiles
-      N,  // us.oc
-      K,  // us.ic
-      &alpha,
-      (const float**)d_A_array,
-      K,  // leading dimension of A
-      (const float**)d_B_array,
-      K,  // leading dimension of B
-      &beta,
-      d_C_array,
-      M,  // leading dimension of C
-      batch_size);
-
-      // 将结果复制回主机
-      for (int idx = 0; idx < batch_size; idx++) {
-      int h = idx / ti.tile_in_w;
-      int w = idx % ti.tile_in_w;
-      float *M_ptr = M_data + idx * C_size;
-
-      cudaMemcpy(M_ptr, d_C + idx * C_size, C_size * sizeof(float), cudaMemcpyDeviceToHost);
+      
+      if (g_streams[i] != NULL) {
+          cudaStreamDestroy(g_streams[i]);
+          g_streams[i] = NULL;
       }
-
-      // 释放资源
-      cudaFree(d_A);
-      cudaFree(d_B);
-      cudaFree(d_C);
-      cudaFree(d_A_array);
-      cudaFree(d_B_array);
-      cudaFree(d_C_array);
-      free(h_A_array);
-      free(h_B_array);
-      free(h_C_array);
+  }
 }
 
 // 转换函数
@@ -372,7 +315,7 @@ struct alignas(64) parameters {
 };
 
 
-void image_transform(float *__restrict__ packed_image,
+void image_transform_256(float *__restrict__ packed_image,
                      float *__restrict__ V,
                      const V_shape_t vs,
                      const tiling_info_t ti,
@@ -499,8 +442,169 @@ void image_transform(float *__restrict__ packed_image,
         
 }
 
+void image_transform(float *__restrict__ packed_image,
+  float *__restrict__ V,
+  const V_shape_t vs,
+  const tiling_info_t ti,
+  const int64_t collapsed_dim_size) {
+typedef float(*packed_image_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+typedef float(*V_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+packed_image_tensor_t packed_image_tensor = (packed_image_tensor_t)packed_image;
+V_tensor_t V_tensor = (V_tensor_t)V;
 
-void filter_transform(float *__restrict__ packed_filter,
+// 第一部分转换 - 行维度转换
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t idx = 0; idx < collapsed_dim_size; idx += 16) {
+        for (int64_t w = 0; w < ti.tile_in_w; ++w) {
+            // 处理每次16个元素
+            const int64_t block_size = (16LL < collapsed_dim_size - idx) ? 16 : (collapsed_dim_size - idx);
+
+            // 设置掩码处理边界情况
+            __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+
+            // 加载常量向量
+            __m512 vfour = _mm512_set1_ps(4.0f);
+            __m512 vneg_four = _mm512_set1_ps(-4.0f);
+            __m512 vneg_five = _mm512_set1_ps(-5.0f);
+            __m512 vneg_two = _mm512_set1_ps(-2.0f);
+            __m512 vtwo = _mm512_set1_ps(2.0f);
+            __m512 vone = _mm512_set1_ps(1.0f);
+            __m512 vneg_one = _mm512_set1_ps(-1.0f);
+
+            // 向量化变换计算
+            __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+
+            // 加载第一个输入行
+            __m512 vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[0][w][idx]);
+
+            // 计算第一个变换输出
+            vt0 = _mm512_mul_ps(vfour, vz6);
+
+            // 加载第二个输入行并进行变换
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[1][w][idx]);
+
+            vt1 = _mm512_mul_ps(vneg_four, vz6);
+            vt2 = _mm512_mul_ps(vfour, vz6);
+            vt3 = _mm512_mul_ps(vneg_two, vz6);
+            vt4 = _mm512_mul_ps(vtwo, vz6);
+            vt5 = _mm512_mul_ps(vfour, vz6);
+
+            // 加载第三个输入行并更新变换
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[2][w][idx]);
+
+            vt0 = _mm512_fmadd_ps(vneg_five, vz6, vt0);
+            vt1 = _mm512_fmadd_ps(vneg_four, vz6, vt1);
+            vt2 = _mm512_fmadd_ps(vneg_four, vz6, vt2);
+            vt3 = _mm512_fmadd_ps(vneg_one, vz6, vt3);
+            vt4 = _mm512_fmadd_ps(vneg_one, vz6, vt4);
+
+            // 加载第四个输入行并更新变换
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[3][w][idx]);
+
+            vt1 = _mm512_fmadd_ps(vone, vz6, vt1);
+            vt2 = _mm512_fmadd_ps(vneg_one, vz6, vt2);
+            vt3 = _mm512_fmadd_ps(vtwo, vz6, vt3);
+            vt4 = _mm512_fmadd_ps(vneg_two, vz6, vt4);
+            vt5 = _mm512_fmadd_ps(vneg_five, vz6, vt5);
+
+            // 加载第五个输入行并更新变换
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[4][w][idx]);
+
+            vt0 = _mm512_add_ps(vt0, vz6);
+            vt1 = _mm512_add_ps(vt1, vz6);
+            vt2 = _mm512_add_ps(vt2, vz6);
+            vt3 = _mm512_add_ps(vt3, vz6);
+            vt4 = _mm512_add_ps(vt4, vz6);
+
+            // 加载第六个输入行并更新变换
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[5][w][idx]);
+
+            vt5 = _mm512_add_ps(vt5, vz6);
+
+            // 存储变换结果
+            _mm512_mask_storeu_ps(&V_tensor[0][w][idx], k_mask, vt0);
+            _mm512_mask_storeu_ps(&V_tensor[1][w][idx], k_mask, vt1);
+            _mm512_mask_storeu_ps(&V_tensor[2][w][idx], k_mask, vt2);
+            _mm512_mask_storeu_ps(&V_tensor[3][w][idx], k_mask, vt3);
+            _mm512_mask_storeu_ps(&V_tensor[4][w][idx], k_mask, vt4);
+            _mm512_mask_storeu_ps(&V_tensor[5][w][idx], k_mask, vt5);
+        }
+    }
+
+    // 第二部分转换 - 列维度转换
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t idx = 0; idx < collapsed_dim_size; idx += 16) {
+        for (int64_t h = 0; h < ti.tile_in_h; ++h) {
+            // 处理边界
+            const int64_t block_size = 16LL < collapsed_dim_size - idx ? 16 : (collapsed_dim_size - idx);
+            __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+
+            // 加载常量向量
+            __m512 vfour = _mm512_set1_ps(4.0f);
+            __m512 vneg_four = _mm512_set1_ps(-4.0f);
+            __m512 vneg_five = _mm512_set1_ps(-5.0f);
+            __m512 vneg_two = _mm512_set1_ps(-2.0f);
+            __m512 vtwo = _mm512_set1_ps(2.0f);
+            __m512 vone = _mm512_set1_ps(1.0f);
+            __m512 vneg_one = _mm512_set1_ps(-1.0f);
+
+            // 向量化变换计算
+            __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+
+            // 实现列变换
+            __m512 vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][0][idx]);
+
+            vt0 = _mm512_mul_ps(vfour, vz6);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][1][idx]);
+
+            vt1 = _mm512_mul_ps(vneg_four, vz6);
+            vt2 = _mm512_mul_ps(vfour, vz6);
+            vt3 = _mm512_mul_ps(vneg_two, vz6);
+            vt4 = _mm512_mul_ps(vtwo, vz6);
+            vt5 = _mm512_mul_ps(vfour, vz6);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][2][idx]);
+
+            vt0 = _mm512_fmadd_ps(vneg_five, vz6, vt0);
+            vt1 = _mm512_fmadd_ps(vneg_four, vz6, vt1);
+            vt2 = _mm512_fmadd_ps(vneg_four, vz6, vt2);
+            vt3 = _mm512_fmadd_ps(vneg_one, vz6, vt3);
+            vt4 = _mm512_fmadd_ps(vneg_one, vz6, vt4);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][3][idx]);
+
+            vt1 = _mm512_fmadd_ps(vone, vz6, vt1);
+            vt2 = _mm512_fmadd_ps(vneg_one, vz6, vt2);
+            vt3 = _mm512_fmadd_ps(vtwo, vz6, vt3);
+            vt4 = _mm512_fmadd_ps(vneg_two, vz6, vt4);
+            vt5 = _mm512_fmadd_ps(vneg_five, vz6, vt5);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][4][idx]);
+
+            vt0 = _mm512_add_ps(vt0, vz6);
+            vt1 = _mm512_add_ps(vt1, vz6);
+            vt2 = _mm512_add_ps(vt2, vz6);
+            vt3 = _mm512_add_ps(vt3, vz6);
+            vt4 = _mm512_add_ps(vt4, vz6);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][5][idx]);
+
+            vt5 = _mm512_add_ps(vt5, vz6);
+
+            // 存储变换结果
+            _mm512_mask_storeu_ps(&V_tensor[h][0][idx], k_mask, vt0);
+            _mm512_mask_storeu_ps(&V_tensor[h][1][idx], k_mask, vt1);
+            _mm512_mask_storeu_ps(&V_tensor[h][2][idx], k_mask, vt2);
+            _mm512_mask_storeu_ps(&V_tensor[h][3][idx], k_mask, vt3);
+            _mm512_mask_storeu_ps(&V_tensor[h][4][idx], k_mask, vt4);
+            _mm512_mask_storeu_ps(&V_tensor[h][5][idx], k_mask, vt5);
+        }
+    }
+}
+
+
+void filter_transform_256(float *__restrict__ packed_filter,
   float *__restrict__ U,
   const filter_shape_t fs,
   const U_shape_t us,
@@ -593,7 +697,261 @@ void filter_transform(float *__restrict__ packed_filter,
         
 }
 
+void filter_transform(float *__restrict__ packed_filter,
+  float *__restrict__ U,
+  const filter_shape_t fs,
+  const U_shape_t us,
+  const int64_t collapsed_dim_size) {
+typedef float(*packed_filter_tensor_t)[fs.w][collapsed_dim_size];
+typedef float(*U_tensor_t)[us.w][collapsed_dim_size];
+packed_filter_tensor_t packed_filter_tensor = (packed_filter_tensor_t)packed_filter;
+U_tensor_t U_tensor = (U_tensor_t)U;
+
+// 第一部分转换 - 行维度
+#pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+for (int64_t idx = 0; idx < collapsed_dim_size; idx += 16) {
+      for (int64_t w = 0; w < fs.w; ++w) {
+          // 处理边界
+          const int64_t block_size = 16LL < collapsed_dim_size - idx ? 16 : (collapsed_dim_size - idx);
+          __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+
+          // 加载常量系数
+          __m512 vquarter = _mm512_set1_ps(1.0f / 4.0f);
+          __m512 vneg_sixth = _mm512_set1_ps(-1.0f / 6.0f);
+          __m512 vsixth = _mm512_set1_ps(1.0f / 6.0f);
+          __m512 vtwentyFourth = _mm512_set1_ps(1.0f / 24.0f);
+          __m512 vtwelfth = _mm512_set1_ps(1.0f / 12.0f);
+          __m512 vneg_twelfth = _mm512_set1_ps(-1.0f / 12.0f);
+
+          // 向量化变换计算
+          __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+
+          // 加载第一个输入行
+          __m512 vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_filter_tensor[w][0][idx]);
+
+          vt0 = _mm512_mul_ps(vquarter, vz6);
+          vt1 = _mm512_mul_ps(vneg_sixth, vz6);
+          vt2 = _mm512_mul_ps(vneg_sixth, vz6);
+          vt3 = _mm512_mul_ps(vtwentyFourth, vz6);
+          vt4 = _mm512_mul_ps(vtwentyFourth, vz6);
+
+          // 加载第二个输入行并更新变换
+          vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_filter_tensor[w][1][idx]);
+
+          vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+          vt2 = _mm512_fmadd_ps(vsixth, vz6, vt2);
+          vt3 = _mm512_fmadd_ps(vtwelfth, vz6, vt3);
+          vt4 = _mm512_fmadd_ps(vneg_twelfth, vz6, vt4);
+
+          // 加载第三个输入行并更新变换
+          vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_filter_tensor[w][2][idx]);
+
+          vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+          vt2 = _mm512_fmadd_ps(vneg_sixth, vz6, vt2);
+          vt3 = _mm512_fmadd_ps(vsixth, vz6, vt3);
+          vt4 = _mm512_fmadd_ps(vsixth, vz6, vt4);
+          vt5 = vz6;  // 直接设置vt5 = vz6
+
+          // 存储变换结果
+          _mm512_mask_storeu_ps(&U_tensor[w][0][idx], k_mask, vt0);
+          _mm512_mask_storeu_ps(&U_tensor[w][1][idx], k_mask, vt1);
+          _mm512_mask_storeu_ps(&U_tensor[w][2][idx], k_mask, vt2);
+          _mm512_mask_storeu_ps(&U_tensor[w][3][idx], k_mask, vt3);
+          _mm512_mask_storeu_ps(&U_tensor[w][4][idx], k_mask, vt4);
+          _mm512_mask_storeu_ps(&U_tensor[w][5][idx], k_mask, vt5);
+      }
+}
+
+// 第二部分转换 - 列维度
+#pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+for (int64_t idx = 0; idx < collapsed_dim_size; idx += 16) {
+      for (int64_t h = 0; h < us.h; ++h) {
+            // 处理边界
+            const int64_t block_size = 16LL < collapsed_dim_size - idx ? 16 : (collapsed_dim_size - idx);
+            __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+
+            // 加载常量系数
+            __m512 vquarter = _mm512_set1_ps(1.0f / 4.0f);
+            __m512 vneg_sixth = _mm512_set1_ps(-1.0f / 6.0f);
+            __m512 vsixth = _mm512_set1_ps(1.0f / 6.0f);
+            __m512 vtwentyFourth = _mm512_set1_ps(1.0f / 24.0f);
+            __m512 vtwelfth = _mm512_set1_ps(1.0f / 12.0f);
+            __m512 vneg_twelfth = _mm512_set1_ps(-1.0f / 12.0f);
+
+            // 向量化变换计算
+            __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+
+            // 实现列变换
+            __m512 vz6 = _mm512_maskz_loadu_ps(k_mask, &U_tensor[0][h][idx]);
+
+            vt0 = _mm512_mul_ps(vquarter, vz6);
+            vt1 = _mm512_mul_ps(vneg_sixth, vz6);
+            vt2 = _mm512_mul_ps(vneg_sixth, vz6);
+            vt3 = _mm512_mul_ps(vtwentyFourth, vz6);
+            vt4 = _mm512_mul_ps(vtwentyFourth, vz6);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &U_tensor[1][h][idx]);
+
+            vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+            vt2 = _mm512_fmadd_ps(vsixth, vz6, vt2);
+            vt3 = _mm512_fmadd_ps(vtwelfth, vz6, vt3);
+            vt4 = _mm512_fmadd_ps(vneg_twelfth, vz6, vt4);
+
+            vz6 = _mm512_maskz_loadu_ps(k_mask, &U_tensor[2][h][idx]);
+
+            vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+            vt2 = _mm512_fmadd_ps(vneg_sixth, vz6, vt2);
+            vt3 = _mm512_fmadd_ps(vsixth, vz6, vt3);
+            vt4 = _mm512_fmadd_ps(vsixth, vz6, vt4);
+            vt5 = vz6;
+
+            // 存储变换结果
+            _mm512_mask_storeu_ps(&U_tensor[0][h][idx], k_mask, vt0);
+            _mm512_mask_storeu_ps(&U_tensor[1][h][idx], k_mask, vt1);
+            _mm512_mask_storeu_ps(&U_tensor[2][h][idx], k_mask, vt2);
+            _mm512_mask_storeu_ps(&U_tensor[3][h][idx], k_mask, vt3);
+            _mm512_mask_storeu_ps(&U_tensor[4][h][idx], k_mask, vt4);
+            _mm512_mask_storeu_ps(&U_tensor[5][h][idx], k_mask, vt5);
+      }
+  }
+}
+
 void output_transform(float *__restrict__ M,
+  float *__restrict__ Y,
+  const tiling_info_t ti,
+  const int64_t collapsed_dim_size) {
+typedef float(*M_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+typedef float(*Y_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+M_tensor_t M_tensor = (M_tensor_t)M;
+Y_tensor_t Y_tensor = (Y_tensor_t)Y;
+
+
+// 第一部分 - 行变换
+  #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+  for (int64_t idx = 0; idx < collapsed_dim_size; idx += 16) {
+      for (int64_t w = 0; w < ti.tile_in_w; ++w) {
+          // 处理边界
+          const int64_t block_size = std::min<int64_t>(16, collapsed_dim_size - idx);
+          __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+
+          // 加载常量向量
+          __m512 vneg_one = _mm512_set1_ps(-1.0f);
+          __m512 vtwo = _mm512_set1_ps(2.0f);
+          __m512 vfour = _mm512_set1_ps(4.0f);
+          __m512 veight = _mm512_set1_ps(8.0f);
+          __m512 vneg_two = _mm512_set1_ps(-2.0f);
+          __m512 vneg_eight = _mm512_set1_ps(-8.0f);
+
+          // 向量化变换计算
+          __m512 vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[0][w][idx]);
+
+          __m512 vr0 = vz4;
+
+          vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[1][w][idx]);
+
+          vr0 = _mm512_add_ps(vr0, vz4);
+          __m512 vr1 = vz4;
+          __m512 vr2 = vz4;
+          __m512 vr3 = vz4;
+
+          vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[2][w][idx]);
+
+          vr0 = _mm512_add_ps(vr0, vz4);
+          vr1 = _mm512_fmadd_ps(vneg_one, vz4, vr1);
+          vr2 = _mm512_add_ps(vr2, vz4);
+          vr3 = _mm512_fmadd_ps(vneg_one, vz4, vr3);
+
+          vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[3][w][idx]);
+
+          vr0 = _mm512_add_ps(vr0, vz4);
+          vr1 = _mm512_fmadd_ps(vtwo, vz4, vr1);
+          vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+          vr3 = _mm512_fmadd_ps(veight, vz4, vr3);
+
+          vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[4][w][idx]);
+
+          vr0 = _mm512_add_ps(vr0, vz4);
+          vr1 = _mm512_fmadd_ps(vneg_two, vz4, vr1);
+          vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+          vr3 = _mm512_fmadd_ps(vneg_eight, vz4, vr3);
+
+          vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[5][w][idx]);
+
+          vr3 = _mm512_add_ps(vr3, vz4);
+
+          // 存储结果
+          _mm512_mask_storeu_ps(&Y_tensor[0][w][idx], k_mask, vr0);
+          _mm512_mask_storeu_ps(&Y_tensor[1][w][idx], k_mask, vr1);
+          _mm512_mask_storeu_ps(&Y_tensor[2][w][idx], k_mask, vr2);
+          _mm512_mask_storeu_ps(&Y_tensor[3][w][idx], k_mask, vr3);
+      }
+  }
+
+// 第二部分 - 列变换
+  #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t idx = 0; idx < collapsed_dim_size; idx += 16) {
+        for (int64_t h = 0; h < ti.tile_out_h; ++h) {
+            // 处理边界
+            const int64_t block_size = std::min<int64_t>(16, collapsed_dim_size - idx);
+            __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+
+            // 加载常量向量
+            __m512 vneg_one = _mm512_set1_ps(-1.0f);
+            __m512 vtwo = _mm512_set1_ps(2.0f);
+            __m512 vfour = _mm512_set1_ps(4.0f);
+            __m512 veight = _mm512_set1_ps(8.0f);
+            __m512 vneg_two = _mm512_set1_ps(-2.0f);
+            __m512 vneg_eight = _mm512_set1_ps(-8.0f);
+
+            // 向量化变换计算
+            __m512 vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][0][idx]);
+
+            __m512 vr0 = vz4;
+
+            vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][1][idx]);
+
+            vr0 = _mm512_add_ps(vr0, vz4);
+            __m512 vr1 = vz4;
+            __m512 vr2 = vz4;
+            __m512 vr3 = vz4;
+
+            vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][2][idx]);
+
+            vr0 = _mm512_add_ps(vr0, vz4);
+            vr1 = _mm512_fmadd_ps(vneg_one, vz4, vr1);
+            vr2 = _mm512_add_ps(vr2, vz4);
+            vr3 = _mm512_fmadd_ps(vneg_one, vz4, vr3);
+
+            vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][3][idx]);
+
+            vr0 = _mm512_add_ps(vr0, vz4);
+            vr1 = _mm512_fmadd_ps(vtwo, vz4, vr1);
+            vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+            vr3 = _mm512_fmadd_ps(veight, vz4, vr3);
+
+            vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][4][idx]);
+
+            vr0 = _mm512_add_ps(vr0, vz4);
+            vr1 = _mm512_fmadd_ps(vneg_two, vz4, vr1);
+            vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+            vr3 = _mm512_fmadd_ps(vneg_eight, vz4, vr3);
+
+            vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][5][idx]);
+
+            vr3 = _mm512_add_ps(vr3, vz4);
+
+            // 存储结果
+            _mm512_mask_storeu_ps(&Y_tensor[h][0][idx], k_mask, vr0);
+            _mm512_mask_storeu_ps(&Y_tensor[h][1][idx], k_mask, vr1);
+            _mm512_mask_storeu_ps(&Y_tensor[h][2][idx], k_mask, vr2);
+            _mm512_mask_storeu_ps(&Y_tensor[h][3][idx], k_mask, vr3);
+        }
+    }
+}
+
+
+
+void output_transform_256(float *__restrict__ M,
                       float *__restrict__ Y,
                       const tiling_info_t ti,
                       const int64_t collapsed_dim_size) {
@@ -822,7 +1180,7 @@ void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B
 
 
 
-void winograd_convolution(float *__restrict__ image, const int image_height,
+void winograd_convolution_singlestream(float *__restrict__ image, const int image_height,
   const int image_width, const int input_channel_num,
   float *__restrict__ filter, const int output_channel_num,
   const int batch_num, float *__restrict__ out) {
@@ -1044,7 +1402,251 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
 
 
 //------------------------------------------------Finish--------------------------------------------------//
+
+void winograd_convolution(float *__restrict__ image, const int image_height,
+  const int image_width, const int input_channel_num,
+  float *__restrict__ filter, const int output_channel_num,
+  const int batch_num, float *__restrict__ out) {
+    // 基本数据准备保持不变
+    const image_shape_t is = {.bs = batch_num, .ic = input_channel_num, .h = image_height, .w = image_width};
+    const filter_shape_t fs = {.oc = output_channel_num, .ic = input_channel_num, .h = FLT_H, .w = FLT_W};
+    const out_shape_t os = get_output_shape(is, fs);
+    const tiling_info_t ti = get_tiling_info(is, os);
+    const U_shape_t us = get_U_shape(fs, ti);
+    const V_shape_t vs = get_V_shape(is, ti);
+
+    int batch_size = ti.tile_in_h * ti.tile_in_w;
+    const int m = vs.num_tiles;  // 输出矩阵的行数
+    const int n = us.oc;        // 输出矩阵的列数
+    const int k = us.ic;        // 内部维度
+
+    const int cpu_limit = 256 * 256 * 512; // CPU限制
+    if(m*n*k < cpu_limit)
+    {
+        //printf("CPU\n");
+        float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
+        float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
+        float *U = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic);
+        float *V = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.num_tiles * vs.ic);
+        float *M = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles);
+        float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
+        
+          filter_packing(filter, packed_filter, fs);
+          filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
+        
+          image_packing(image, packed_image, is, ti);
+          image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
+      
+      //CUDA Prepare
+        #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+        for (int64_t h = 0; h < ti.tile_in_h; ++h) {
+            for (int64_t w = 0; w < ti.tile_in_w; ++w) {
+                typedef float(*U_tensor_t)[ti.tile_in_w][us.oc][us.ic];
+                typedef float(*V_tensor_t)[ti.tile_in_w][vs.num_tiles][vs.ic];
+                typedef float(*M_tensor_t)[ti.tile_in_w][us.oc][vs.num_tiles];
+                U_tensor_t U_tensor = (U_tensor_t)U;
+                V_tensor_t V_tensor = (V_tensor_t)V;
+                M_tensor_t M_tensor = (M_tensor_t)M;
+            
+                // 初始化 M_tensor[h][w] 为 0
+                //memset(M_tensor[h][w], 0, sizeof(float) * us.oc * vs.num_tiles);
+                sgemm(vs.num_tiles,
+                  us.oc,
+                  us.ic,
+                  (float *)(V_tensor[h][w]),
+                  (float *)(U_tensor[h][w]),
+                  (float *)(M_tensor[h][w]));
+    
+              }
+          
+        }
+            
+        output_transform(M, Y, ti, us.oc * vs.num_tiles);
+        output_unpacking_store(Y, out, os, ti);
+        
+        //destroy_cublas();
+      
+        free(packed_filter);
+        free(packed_image);
+        free(U);
+        free(V);
+        free(M);
+        free(Y);
+
+        return;
+    }
+
+
+    
+    else{
+
+        //printf("CUDA\n");
+          // 计算所需内存大小
+        const long long A_size = vs.num_tiles * vs.ic;  // V矩阵大小
+        const long long B_size = us.oc * us.ic;        // U矩阵大小
+        const long long C_size = vs.num_tiles * us.oc;  // M矩阵大小
+        
+        size_t pinned_U_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic ;
+        size_t pinned_V_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.num_tiles * vs.ic ;
+        size_t pinned_M_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles ;
+        
+        size_t d_A_req_size = sizeof(float) * batch_size * A_size ;
+        size_t d_B_req_size = sizeof(float) * batch_size * B_size ;
+        size_t d_C_req_size = sizeof(float) * batch_size * C_size ;
+
+        size_t U_per_size = pinned_U_req_size / stream_count;
+        size_t V_per_size = pinned_V_req_size / stream_count;
+        size_t M_per_size = pinned_M_req_size / stream_count;
+        size_t d_A_per_size = d_A_req_size / stream_count;
+        size_t d_B_per_size = d_B_req_size / stream_count;
+        size_t d_C_per_size = d_C_req_size / stream_count;
+        
+        // 初始化 cuBLAS (如果还没有初始化)
+        /*if(!init_flag) {
+            init_cublas();
+            init_flag = true;
+        }*/
+        
+        // 初始化内存池（如果是第一次使用）
+        if (!pool_initialized) {
+            // 创建CUDA流
+            init_cublas();
+            
+             // 预分配所有内存，确保大小足够
+             if(mem_pre_allocated)
+             {
+                ensure_memory_size((void**)&g_pinned_U, &g_pinned_U_size, init_memsize, true);
+                ensure_memory_size((void**)&g_pinned_V, &g_pinned_V_size, init_memsize, true);
+                ensure_memory_size((void**)&g_pinned_M, &g_pinned_M_size, init_memsize, true);
+                ensure_memory_size((void**)&g_d_A, &g_d_A_size, init_memsize, false);
+                ensure_memory_size((void**)&g_d_B, &g_d_B_size, init_memsize, false);
+                ensure_memory_size((void**)&g_d_C, &g_d_C_size, init_memsize, false);
+                //printf("Initialized memory pool with size: %lld\n", init_memsize);
+             }
+            
+            // 标记为已初始化
+            pool_initialized = true;
+        }
+        
+        // 确保所有内存大小足够
+        bool memory_ok = 
+            ensure_memory_size((void**)&g_pinned_U, &g_pinned_U_size, pinned_U_req_size, true) &&
+            ensure_memory_size((void**)&g_pinned_V, &g_pinned_V_size, pinned_V_req_size, true) &&
+            ensure_memory_size((void**)&g_pinned_M, &g_pinned_M_size, pinned_M_req_size, true) &&
+            ensure_memory_size((void**)&g_d_A, &g_d_A_size, d_A_req_size, false) &&
+            ensure_memory_size((void**)&g_d_B, &g_d_B_size, d_B_req_size, false) &&
+            ensure_memory_size((void**)&g_d_C, &g_d_C_size, d_C_req_size, false);
+        
+        
+        // 设置 cublas 流
+        //cublasSetStream(cublas_handle, g_stream);
+
+        // 普通内存分配（这些较小，可以每次重新分配）
+        float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
+        float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
+        float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
+
+
+        filter_packing(filter, packed_filter, fs);
+        filter_transform(packed_filter, g_pinned_U, fs, us, us.oc * us.ic);
+
+        image_packing(image, packed_image, is, ti);
+        image_transform(packed_image, g_pinned_V, vs, ti, vs.ic * vs.num_tiles);
+
+        int batch_per_stream = batch_size / stream_count;
+
+        //分批次处理
+        for(int i = 0; i < stream_count; i++)
+        {
+            //计算偏移量
+            size_t offset_U = i * U_per_size / sizeof(float);
+            size_t offset_V = i * V_per_size / sizeof(float);
+            size_t offset_M = i * M_per_size / sizeof(float);
+
+            size_t offset_d_A = i * d_A_per_size / sizeof(float);
+            size_t offset_d_B = i * d_B_per_size / sizeof(float);
+            size_t offset_d_C = i * d_C_per_size / sizeof(float);
+
+            // 使用异步内存复制将数据传输到GPU
+            cudaMemcpyAsync(g_d_A + offset_d_A, g_pinned_V + offset_V, batch_per_stream * A_size * sizeof(float), 
+                          cudaMemcpyHostToDevice, g_streams[i]);
+            cudaMemcpyAsync(g_d_B + offset_d_B, g_pinned_U + offset_U, batch_per_stream * B_size * sizeof(float),
+                          cudaMemcpyHostToDevice, g_streams[i]);
+
+            //用事件同步流
+            cudaEventRecord(events[i], g_streams[i]);
+
+
+            // 步长 - 每个矩阵的大小（元素数量）
+            long long strideA = A_size;
+            long long strideB = B_size;
+            long long strideC = C_size;
+
+            // 执行批处理矩阵乘法
+            const float alpha = 1.0f;
+            const float beta = 0.0f;
+
+             // 确保在同一流中GEMM等待数据传输完成
+            cublasSetStream(cublas_handles[i], g_streams[i]);
+
+            // 使用带步长的批处理GEMM (在同一流中执行)
+            cublasGemmStridedBatchedEx(
+                cublas_handles[i],
+                CUBLAS_OP_T,           // A转置
+                CUBLAS_OP_N,           // B不转置
+                m,                     // 矩阵C的行数(vs.num_tiles)
+                n,                     // 矩阵C的列数(us.oc)
+                k,                     // 内部维度(us.ic)
+                &alpha,                // 缩放因子
+                g_d_A + offset_d_A,    // V矩阵起始地址
+                CUDA_R_32F,            // 数据类型:float
+                k,                     // V矩阵的前导维度
+                strideA,               // V矩阵序列的步长
+                g_d_B + offset_d_B,    // U矩阵起始地址
+                CUDA_R_32F,            // 数据类型:float
+                k,                     // U矩阵的前导维度
+                strideB,               // U矩阵序列的步长
+                &beta,                 // 缩放因子
+                g_d_C + offset_d_C,    // M矩阵起始地址
+                CUDA_R_32F,            // 数据类型:float
+                m,                     // M矩阵的前导维度
+                strideC,               // M矩阵序列的步长
+                batch_per_stream,            // 批次数量
+                CUDA_R_32F,            // 计算类型:float
+                CUBLAS_GEMM_DEFAULT    // 使用默认算法
+            );
+
+            cudaEventRecord(events[i], g_streams[i]);
+
+            // 异步将结果复制回主机（使用页锁定内存）
+            cudaMemcpyAsync(g_pinned_M + offset_M, g_d_C + offset_d_C, batch_per_stream * C_size * sizeof(float), 
+                          cudaMemcpyDeviceToHost, g_streams[i]);
+
+        }
+
+        // 等待所有流完成
+        for(int i = 0; i < stream_count; i++)
+        {
+            cudaEventSynchronize(events[i]);
+        }
+        
+        // 输出处理保持不变
+        output_transform(g_pinned_M, Y, ti, us.oc * vs.num_tiles);
+        output_unpacking_store(Y, out, os, ti);
+
+        // 释放普通内存
+        free(packed_filter);
+        free(packed_image);
+        free(Y);
+        
+    }
+
+}
+
+
 //-----------------------------------------------Finished--------------------------------------------------// 
+//---------------------------------------------------------------------------------------------------------//
+//-----------------------------------------------Finished--------------------------------------------------//
 
 
 

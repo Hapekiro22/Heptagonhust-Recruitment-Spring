@@ -1,5 +1,5 @@
 # 使用nvcc编译器
-CFLAG = -O3 -g -Wall -mavx -fopenmp -mfma -mavx2
+CFLAG = -O3 -g -Wall -mavx -fopenmp -mfma -mavx2 -mavx512f -mavx512dq -mavx512vl -mavx512bw
 CUDA_PATH = /usr/local/cuda
 CUDA_INCLUDES = -I${CUDA_PATH}/include
 CUDA_LIBS = -L${CUDA_PATH}/targets/x86_64-linux/lib -lcudart -lcublas -lcudnn
