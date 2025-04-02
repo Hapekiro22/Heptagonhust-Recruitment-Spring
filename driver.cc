@@ -84,6 +84,11 @@ void test_on_one_layer(const int layer_idx,
     filter[i] = (float)(i / (FLT_H * FLT_W) + 1);
 
   if (validation_mode) {  // Verify mode. Check the result
+
+    //////////////////////////
+    long correct = 0;
+    /////////////////////////////
+
     float *out_ref = (float *)malloc(sizeof(float) * batch * output_channels * output_height * output_width);
     assert(out_ref != NULL);
     winograd_convolution(
@@ -94,11 +99,18 @@ void test_on_one_layer(const int layer_idx,
         "(%-3d %-3d %-3d %-3d %-3d) : ", input_channels, image_height, image_width, output_channels, batch);
     long n;
     for (n = 0; n < (long)batch * output_height * output_width * output_channels; n++)
+    {
       if (fabs((out[n] - out_ref[n]) / out_ref[n]) > 1e-2 || isnan(out[n]) || isinf(out[n])) {
         printf("Validation Failed !");
-        printf("winogradConv[%ld] = %f || directConv[%ld] = %f \n", n, out[n], n, out_ref[n]);
+        printf("winogradConv[%ld] = %f || directConv[%ld] = %f   ", n, out[n], n, out_ref[n]);
+        printf("There's only %ld corrects\n", correct);
         break;
       }
+      else
+        correct++;
+    }
+    
+      
     if (n == (long)batch * output_height * output_width * output_channels) printf("Validation Passed !\n");
     free(out_ref);
   } else {

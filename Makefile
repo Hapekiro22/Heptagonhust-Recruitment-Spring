@@ -1,12 +1,25 @@
-# 使用nvcc编译器
+# 修改后的兼容性Makefile
 CFLAG = -O3 -g -Wall -mavx -fopenmp -mfma -mavx2 -mavx512f -mavx512dq -mavx512vl -mavx512bw
-CUDA_PATH = /usr/local/cuda
-CUDA_INCLUDES = -I${CUDA_PATH}/include
-CUDA_LIBS = -L${CUDA_PATH}/targets/x86_64-linux/lib -lcudart -lcublas -lcudnn
-NVCC_FLAGS = -O3 -std=c++11 -gencode arch=compute_89,code=sm_89
+CUDA_INCLUDES = -I/usr/local/cuda/include
+CUDA_LIBS = -L/usr/local/cuda/lib64 -Wl,-rpath,/usr/local/cuda/lib64 -lcudart -lcublas
+NVCC_FLAGS = -O3 -std=c++11
 
 all:
 	g++ driver.cc winograd.cc -std=c++11 ${CFLAG} ${CUDA_INCLUDES} ${CUDA_LIBS} -o winograd
 
+# 添加一个专门针对节点间兼容性的目标
+compat:
+	g++ driver.cc winograd.cc -std=c++11 ${CFLAG} -I/usr/local/cuda/include \
+	-L/usr/local/cuda/lib64 \
+	-Wl,-rpath,/usr/local/cuda/lib64 \
+	-Wl,-rpath,/usr/local/cuda-12.6/targets/x86_64-linux/lib \
+	-lcudart -lcublas -o winograd_compat
+
+compat2:
+	g++ driver.cc winograd.cc -std=c++11 ${CFLAG} -I/usr/local/cuda/include \
+	-Wl,--allow-shlib-undefined \
+	-Wl,--unresolved-symbols=ignore-all \
+	-o winograd_compat2
+
 clean:
-	rm -f winograd
+	rm -f winograd winograd_compat

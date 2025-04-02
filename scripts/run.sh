@@ -4,7 +4,7 @@
 #SBATCH -e slurm-error/winograd-job-%j.err
 #SBATCH -c 64
 #SBATCH --exclusive
-#SBATCH --exclude hepnode0,hepnode3,hepnode2
+#SBATCH --exclude hepnode0,hepnode3
 #SBATCH --gres=gpu:1
 
 # Note: How to run this script on slurm: `sbatch ./run.sh'.
@@ -15,7 +15,7 @@ export OMP_NUM_THREADS=64
 
 # Note: Set CUDA environment variables
 export CUDA_VISIBLE_DEVICES=0
-export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/usr/local/cuda/targets/x86_64-linux/lib:$LD_LIBRARY_PATH
+LD_LIBRARY_PATH=/usr/local/cuda-12.6/targets/x86_64-linux/lib:$LD_LIBRARY_PATH ./winograd_compat2 conf/vgg16.conf
 
 eval $(spack load --sh cuda@12.8.0)
 
@@ -40,10 +40,10 @@ elif [ "$2" == "0" ]; then
 else
 	echo "Wrong Parameters!"
 
-fi
+fi 
 
- 
-numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 1
+numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
+
 #perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 
 
