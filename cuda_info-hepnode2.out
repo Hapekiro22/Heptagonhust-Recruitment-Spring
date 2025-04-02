@@ -1,6 +1,6 @@
 ======================= CUDA 信息查询 =======================
 主机名: hepnode2
-执行日期: Wed Apr  2 06:15:41 PM CST 2025
+执行日期: Wed Apr  2 07:09:59 PM CST 2025
 ======================= 环境变量 =======================
 CUDA_HOME: 
 PATH: /data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand
@@ -17,7 +17,7 @@ CUBLAS库: 	libcublasLt.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86
 	libcublas.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12
 	libcublas.so (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so
 ======================= GPU 设备信息 =======================
-Wed Apr  2 18:15:41 2025       
+Wed Apr  2 19:09:59 2025       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
 |-----------------------------------------+------------------------+----------------------+
@@ -26,7 +26,7 @@ Wed Apr  2 18:15:41 2025
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA L40                     Off |   00000000:4B:00.0 Off |                    0 |
-| N/A   31C    P8             34W /  300W |       1MiB /  46068MiB |      0%      Default |
+| N/A   32C    P8             34W /  300W |       1MiB /  46068MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 |   1  NVIDIA L40                     Off |   00000000:B1:00.0 Off |                    0 |

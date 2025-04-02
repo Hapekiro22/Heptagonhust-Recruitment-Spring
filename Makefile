@@ -8,18 +8,12 @@ all:
 	g++ driver.cc winograd.cc -std=c++11 ${CFLAG} ${CUDA_INCLUDES} ${CUDA_LIBS} -o winograd
 
 # 添加一个专门针对节点间兼容性的目标
-compat:
-	g++ driver.cc winograd.cc -std=c++11 ${CFLAG} -I/usr/local/cuda/include \
-	-L/usr/local/cuda/lib64 \
-	-Wl,-rpath,/usr/local/cuda/lib64 \
-	-Wl,-rpath,/usr/local/cuda-12.6/targets/x86_64-linux/lib \
-	-lcudart -lcublas -o winograd_compat
 
-compat2:
+compat:
 	g++ driver.cc winograd.cc -std=c++11 ${CFLAG} -I/usr/local/cuda/include \
 	-Wl,--allow-shlib-undefined \
 	-Wl,--unresolved-symbols=ignore-all \
-	-o winograd_compat2
+	-o winograd
 
 clean:
-	rm -f winograd winograd_compat
+	rm -f winograd winograd

@@ -45,9 +45,9 @@ bool init_flag = false;
 // CUDA流
 const int stream_count = 12;
 static cudaStream_t g_stream = NULL;
-static cudaStream_t g_streams[stream_count] = {NULL};
+static cudaStream_t g_streams[stream_count] = {nullptr};
 
-static cudaEvent_t events[stream_count] = {NULL};
+static cudaEvent_t events[stream_count] = {nullptr};
 
 // 定义 cublas 句柄
 static cublasHandle_t cublas_handle = nullptr;
@@ -77,19 +77,14 @@ bool init_cublas() {
     //cudaSetDevice(0);
     //printf("成功设置 CUDA 设备 0\n");;
 
-    if(stream_count > 1) {
+    if(stream_count > 0) {
         for (int i = 0; i < stream_count; i++) {
-            CHECK_CUBLAS_ERROR(cublasCreate(&cublas_handles[i]));
-            CHECK_CUDA_ERROR(cudaStreamCreate(&g_streams[i]));
-            CHECK_CUBLAS_ERROR(cublasSetStream(cublas_handles[i], g_streams[i]));
-            CHECK_CUDA_ERROR(cudaEventCreate(&events[i]));
+            cublasCreate(&cublas_handles[i]);
+            cudaStreamCreate(&g_streams[i]);
+            cublasSetStream(cublas_handles[i], g_streams[i]);
+            cudaEventCreate(&events[i]);
         }
     } 
-    
-    else {
-        CHECK_CUDA_ERROR(cudaStreamCreate(&g_stream));
-        CHECK_CUBLAS_ERROR(cublasSetStream(cublas_handle, g_stream));
-    }
 
     return true;
 }
@@ -172,7 +167,7 @@ void convert_float_to_half(float* src_f32, half* dst_f16, size_t size) {
 // 内存池全局变量
 static bool pool_initialized = false;
 
-static bool mem_pre_allocated = true;
+static bool mem_pre_allocated = false;
 
 const unsigned long long init_memsize = 6000000000; // 4GB
 
@@ -1049,6 +1044,527 @@ void output_transform_256(float *__restrict__ M,
     
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+void image_transform_blocked(float *__restrict__ packed_image,
+                           float *__restrict__ V,
+                           const V_shape_t vs,
+                           const tiling_info_t ti,
+                           const int64_t collapsed_dim_size) {
+    typedef float(*packed_image_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+    typedef float(*V_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+    packed_image_tensor_t packed_image_tensor = (packed_image_tensor_t)packed_image;
+    V_tensor_t V_tensor = (V_tensor_t)V;
+
+    // 定义分块参数 - 根据实际缓存大小调整
+    const int64_t BLOCK_H = 2;      // 行方向分块
+    const int64_t BLOCK_W = 2;      // 列方向分块
+    const int64_t BLOCK_C = 128;    // 通道方向分块
+
+    // 行变换分块处理
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t c_block = 0; c_block < collapsed_dim_size; c_block += BLOCK_C) {
+        for (int64_t w_block = 0; w_block < ti.tile_in_w; w_block += BLOCK_W) {
+            for (int64_t vec_idx = 0; vec_idx < BLOCK_C; vec_idx += 16) {
+                // 确定实际块边界
+                const int64_t max_c = std::min(c_block + BLOCK_C, collapsed_dim_size);
+                const int64_t max_w = std::min(w_block + BLOCK_W, ti.tile_in_w);
+                const int64_t c = c_block + vec_idx;
+                
+                // 检查是否超出边界
+                if (c >= max_c) continue;
+                
+                // AVX-512处理的元素数量
+                const int64_t block_size = std::min<int64_t>(16, max_c - c);
+                __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+                
+                // 预加载常量向量
+                __m512 vfour = _mm512_set1_ps(4.0f);
+                __m512 vneg_four = _mm512_set1_ps(-4.0f);
+                __m512 vneg_five = _mm512_set1_ps(-5.0f);
+                __m512 vneg_two = _mm512_set1_ps(-2.0f);
+                __m512 vtwo = _mm512_set1_ps(2.0f);
+                __m512 vone = _mm512_set1_ps(1.0f);
+                __m512 vneg_one = _mm512_set1_ps(-1.0f);
+                
+                // 对每个块内的列进行处理
+                for (int64_t w = w_block; w < max_w; ++w) {
+                    // 预取下一个需要的数据 (提高缓存命中率)
+                    if (w + 1 < max_w) {
+                        _mm_prefetch(&packed_image_tensor[0][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_image_tensor[1][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_image_tensor[2][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_image_tensor[3][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_image_tensor[4][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_image_tensor[5][w+1][c], _MM_HINT_T0);
+                    }
+                    
+                    // 向量化变换计算
+                    __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+                    __m512 vz6;
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[0][w][c]);
+                    vt0 = _mm512_mul_ps(vfour, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[1][w][c]);
+                    vt1 = _mm512_mul_ps(vneg_four, vz6);
+                    vt2 = _mm512_mul_ps(vfour, vz6);
+                    vt3 = _mm512_mul_ps(vneg_two, vz6);
+                    vt4 = _mm512_mul_ps(vtwo, vz6);
+                    vt5 = _mm512_mul_ps(vfour, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[2][w][c]);
+                    vt0 = _mm512_fmadd_ps(vneg_five, vz6, vt0);
+                    vt1 = _mm512_fmadd_ps(vneg_four, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vneg_four, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vneg_one, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vneg_one, vz6, vt4);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[3][w][c]);
+                    vt1 = _mm512_fmadd_ps(vone, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vneg_one, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vtwo, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vneg_two, vz6, vt4);
+                    vt5 = _mm512_fmadd_ps(vneg_five, vz6, vt5);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[4][w][c]);
+                    vt0 = _mm512_add_ps(vt0, vz6);
+                    vt1 = _mm512_add_ps(vt1, vz6);
+                    vt2 = _mm512_add_ps(vt2, vz6);
+                    vt3 = _mm512_add_ps(vt3, vz6);
+                    vt4 = _mm512_add_ps(vt4, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_image_tensor[5][w][c]);
+                    vt5 = _mm512_add_ps(vt5, vz6);
+                    
+                    // 存储变换结果
+                    _mm512_mask_storeu_ps(&V_tensor[0][w][c], k_mask, vt0);
+                    _mm512_mask_storeu_ps(&V_tensor[1][w][c], k_mask, vt1);
+                    _mm512_mask_storeu_ps(&V_tensor[2][w][c], k_mask, vt2);
+                    _mm512_mask_storeu_ps(&V_tensor[3][w][c], k_mask, vt3);
+                    _mm512_mask_storeu_ps(&V_tensor[4][w][c], k_mask, vt4);
+                    _mm512_mask_storeu_ps(&V_tensor[5][w][c], k_mask, vt5);
+                }
+            }
+        }
+    }
+
+    // 列变换分块处理
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t c_block = 0; c_block < collapsed_dim_size; c_block += BLOCK_C) {
+        for (int64_t h_block = 0; h_block < ti.tile_in_h; h_block += BLOCK_H) {
+            for (int64_t vec_idx = 0; vec_idx < BLOCK_C; vec_idx += 16) {
+                // 确定实际块边界
+                const int64_t max_c = std::min(c_block + BLOCK_C, collapsed_dim_size);
+                const int64_t max_h = std::min(h_block + BLOCK_H, ti.tile_in_h);
+                const int64_t c = c_block + vec_idx;
+                
+                // 检查是否超出边界
+                if (c >= max_c) continue;
+                
+                // AVX-512处理的元素数量
+                const int64_t block_size = std::min<int64_t>(16, max_c - c);
+                __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+                
+                // 预加载常量向量
+                __m512 vfour = _mm512_set1_ps(4.0f);
+                __m512 vneg_four = _mm512_set1_ps(-4.0f);
+                __m512 vneg_five = _mm512_set1_ps(-5.0f);
+                __m512 vneg_two = _mm512_set1_ps(-2.0f);
+                __m512 vtwo = _mm512_set1_ps(2.0f);
+                __m512 vone = _mm512_set1_ps(1.0f);
+                __m512 vneg_one = _mm512_set1_ps(-1.0f);
+                
+                // 对每个块内的行进行处理
+                for (int64_t h = h_block; h < max_h; ++h) {
+                    // 预取下一行数据
+                    if (h + 1 < max_h) {
+                        _mm_prefetch(&V_tensor[h+1][0][c], _MM_HINT_T0);
+                        _mm_prefetch(&V_tensor[h+1][1][c], _MM_HINT_T0);
+                        _mm_prefetch(&V_tensor[h+1][2][c], _MM_HINT_T0);
+                        _mm_prefetch(&V_tensor[h+1][3][c], _MM_HINT_T0);
+                        _mm_prefetch(&V_tensor[h+1][4][c], _MM_HINT_T0);
+                        _mm_prefetch(&V_tensor[h+1][5][c], _MM_HINT_T0);
+                    }
+                    
+                    // 向量化变换计算
+                    __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+                    __m512 vz6;
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][0][c]);
+                    vt0 = _mm512_mul_ps(vfour, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][1][c]);
+                    vt1 = _mm512_mul_ps(vneg_four, vz6);
+                    vt2 = _mm512_mul_ps(vfour, vz6);
+                    vt3 = _mm512_mul_ps(vneg_two, vz6);
+                    vt4 = _mm512_mul_ps(vtwo, vz6);
+                    vt5 = _mm512_mul_ps(vfour, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][2][c]);
+                    vt0 = _mm512_fmadd_ps(vneg_five, vz6, vt0);
+                    vt1 = _mm512_fmadd_ps(vneg_four, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vneg_four, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vneg_one, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vneg_one, vz6, vt4);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][3][c]);
+                    vt1 = _mm512_fmadd_ps(vone, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vneg_one, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vtwo, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vneg_two, vz6, vt4);
+                    vt5 = _mm512_fmadd_ps(vneg_five, vz6, vt5);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][4][c]);
+                    vt0 = _mm512_add_ps(vt0, vz6);
+                    vt1 = _mm512_add_ps(vt1, vz6);
+                    vt2 = _mm512_add_ps(vt2, vz6);
+                    vt3 = _mm512_add_ps(vt3, vz6);
+                    vt4 = _mm512_add_ps(vt4, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &V_tensor[h][5][c]);
+                    vt5 = _mm512_add_ps(vt5, vz6);
+                    
+                    // 存储最终结果
+                    _mm512_mask_storeu_ps(&V_tensor[h][0][c], k_mask, vt0);
+                    _mm512_mask_storeu_ps(&V_tensor[h][1][c], k_mask, vt1);
+                    _mm512_mask_storeu_ps(&V_tensor[h][2][c], k_mask, vt2);
+                    _mm512_mask_storeu_ps(&V_tensor[h][3][c], k_mask, vt3);
+                    _mm512_mask_storeu_ps(&V_tensor[h][4][c], k_mask, vt4);
+                    _mm512_mask_storeu_ps(&V_tensor[h][5][c], k_mask, vt5);
+                }
+            }
+        }
+    }
+}
+
+void filter_transform_blocked(float *__restrict__ packed_filter,
+                           float *__restrict__ U,
+                           const filter_shape_t fs,
+                           const U_shape_t us,
+                           const int64_t collapsed_dim_size) {
+    typedef float(*packed_filter_tensor_t)[fs.w][collapsed_dim_size];
+    typedef float(*U_tensor_t)[us.w][collapsed_dim_size];
+    packed_filter_tensor_t packed_filter_tensor = (packed_filter_tensor_t)packed_filter;
+    U_tensor_t U_tensor = (U_tensor_t)U;
+
+    // 定义分块参数
+    const int64_t BLOCK_W = 2;      // 列方向分块
+    const int64_t BLOCK_H = 2;      // 行方向分块
+    const int64_t BLOCK_C = 128;    // 通道方向分块
+
+    // 行变换分块处理
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t c_block = 0; c_block < collapsed_dim_size; c_block += BLOCK_C) {
+        for (int64_t w_block = 0; w_block < fs.w; w_block += BLOCK_W) {
+            for (int64_t vec_idx = 0; vec_idx < BLOCK_C; vec_idx += 16) {
+                // 确定实际块边界
+                const int64_t max_c = std::min(c_block + BLOCK_C, collapsed_dim_size);
+                const int64_t max_w = std::min(w_block + BLOCK_W, fs.w);
+                const int64_t c = c_block + vec_idx;
+                
+                // 检查是否超出边界
+                if (c >= max_c) continue;
+                
+                // AVX-512处理的元素数量
+                const int64_t block_size = std::min<int64_t>(16, max_c - c);
+                __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+                
+                // 预加载常量向量
+                __m512 vquarter = _mm512_set1_ps(1.0f / 4.0f);
+                __m512 vneg_sixth = _mm512_set1_ps(-1.0f / 6.0f);
+                __m512 vsixth = _mm512_set1_ps(1.0f / 6.0f);
+                __m512 vtwentyFourth = _mm512_set1_ps(1.0f / 24.0f);
+                __m512 vtwelfth = _mm512_set1_ps(1.0f / 12.0f);
+                __m512 vneg_twelfth = _mm512_set1_ps(-1.0f / 12.0f);
+                
+                // 对每个块内的列进行处理
+                for (int64_t w = w_block; w < max_w; ++w) {
+                    // 预取下一列数据
+                    if (w + 1 < max_w) {
+                        _mm_prefetch(&packed_filter_tensor[w+1][0][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_filter_tensor[w+1][1][c], _MM_HINT_T0);
+                        _mm_prefetch(&packed_filter_tensor[w+1][2][c], _MM_HINT_T0);
+                    }
+                    
+                    // 向量化变换计算
+                    __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+                    __m512 vz6;
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_filter_tensor[w][0][c]);
+                    vt0 = _mm512_mul_ps(vquarter, vz6);
+                    vt1 = _mm512_mul_ps(vneg_sixth, vz6);
+                    vt2 = _mm512_mul_ps(vneg_sixth, vz6);
+                    vt3 = _mm512_mul_ps(vtwentyFourth, vz6);
+                    vt4 = _mm512_mul_ps(vtwentyFourth, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_filter_tensor[w][1][c]);
+                    vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vsixth, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vtwelfth, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vneg_twelfth, vz6, vt4);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &packed_filter_tensor[w][2][c]);
+                    vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vneg_sixth, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vsixth, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vsixth, vz6, vt4);
+                    vt5 = vz6;
+                    
+                    // 存储变换结果
+                    _mm512_mask_storeu_ps(&U_tensor[w][0][c], k_mask, vt0);
+                    _mm512_mask_storeu_ps(&U_tensor[w][1][c], k_mask, vt1);
+                    _mm512_mask_storeu_ps(&U_tensor[w][2][c], k_mask, vt2);
+                    _mm512_mask_storeu_ps(&U_tensor[w][3][c], k_mask, vt3);
+                    _mm512_mask_storeu_ps(&U_tensor[w][4][c], k_mask, vt4);
+                    _mm512_mask_storeu_ps(&U_tensor[w][5][c], k_mask, vt5);
+                }
+            }
+        }
+    }
+
+    // 列变换分块处理
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+    for (int64_t c_block = 0; c_block < collapsed_dim_size; c_block += BLOCK_C) {
+        for (int64_t h_block = 0; h_block < us.h; h_block += BLOCK_H) {
+            for (int64_t vec_idx = 0; vec_idx < BLOCK_C; vec_idx += 16) {
+                // 确定实际块边界
+                const int64_t max_c = std::min(c_block + BLOCK_C, collapsed_dim_size);
+                const int64_t max_h = std::min(h_block + BLOCK_H, us.h);
+                const int64_t c = c_block + vec_idx;
+                
+                // 检查是否超出边界
+                if (c >= max_c) continue;
+                
+                // AVX-512处理的元素数量
+                const int64_t block_size = std::min<int64_t>(16, max_c - c);
+                __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+                
+                // 预加载常量向量
+                __m512 vquarter = _mm512_set1_ps(1.0f / 4.0f);
+                __m512 vneg_sixth = _mm512_set1_ps(-1.0f / 6.0f);
+                __m512 vsixth = _mm512_set1_ps(1.0f / 6.0f);
+                __m512 vtwentyFourth = _mm512_set1_ps(1.0f / 24.0f);
+                __m512 vtwelfth = _mm512_set1_ps(1.0f / 12.0f);
+                __m512 vneg_twelfth = _mm512_set1_ps(-1.0f / 12.0f);
+                
+                // 对每个块内的行进行处理
+                for (int64_t h = h_block; h < max_h; ++h) {
+                    // 预取下一行数据
+                    if (h + 1 < max_h) {
+                        _mm_prefetch(&U_tensor[0][h+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&U_tensor[1][h+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&U_tensor[2][h+1][c], _MM_HINT_T0);
+                    }
+                    
+                    // 向量化变换计算
+                    __m512 vt0, vt1, vt2, vt3, vt4, vt5;
+                    __m512 vz6;
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &U_tensor[0][h][c]);
+                    vt0 = _mm512_mul_ps(vquarter, vz6);
+                    vt1 = _mm512_mul_ps(vneg_sixth, vz6);
+                    vt2 = _mm512_mul_ps(vneg_sixth, vz6);
+                    vt3 = _mm512_mul_ps(vtwentyFourth, vz6);
+                    vt4 = _mm512_mul_ps(vtwentyFourth, vz6);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &U_tensor[1][h][c]);
+                    vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vsixth, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vtwelfth, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vneg_twelfth, vz6, vt4);
+                    
+                    vz6 = _mm512_maskz_loadu_ps(k_mask, &U_tensor[2][h][c]);
+                    vt1 = _mm512_fmadd_ps(vneg_sixth, vz6, vt1);
+                    vt2 = _mm512_fmadd_ps(vneg_sixth, vz6, vt2);
+                    vt3 = _mm512_fmadd_ps(vsixth, vz6, vt3);
+                    vt4 = _mm512_fmadd_ps(vsixth, vz6, vt4);
+                    vt5 = vz6;
+                    
+                    // 存储最终结果
+                    _mm512_mask_storeu_ps(&U_tensor[0][h][c], k_mask, vt0);
+                    _mm512_mask_storeu_ps(&U_tensor[1][h][c], k_mask, vt1);
+                    _mm512_mask_storeu_ps(&U_tensor[2][h][c], k_mask, vt2);
+                    _mm512_mask_storeu_ps(&U_tensor[3][h][c], k_mask, vt3);
+                    _mm512_mask_storeu_ps(&U_tensor[4][h][c], k_mask, vt4);
+                    _mm512_mask_storeu_ps(&U_tensor[5][h][c], k_mask, vt5);
+                }
+            }
+        }
+    }
+}
+
+
+void output_transform_blocked(float *__restrict__ M,
+                           float *__restrict__ Y,
+                           const tiling_info_t ti,
+                           const int64_t collapsed_dim_size) {
+    typedef float(*M_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+    typedef float(*Y_tensor_t)[ti.tile_in_w][collapsed_dim_size];
+    M_tensor_t M_tensor = (M_tensor_t)M;
+    Y_tensor_t Y_tensor = (Y_tensor_t)Y;
+
+    // 定义分块参数
+    const int64_t BLOCK_H = 2;      // 行方向分块
+    const int64_t BLOCK_W = 2;      // 列方向分块
+    const int64_t BLOCK_C = 128;    // 通道方向分块
+
+    // 行变换分块处理
+    #pragma omp parallel for collapse(3) schedule(guided) num_threads(threads_max)
+    for (int64_t c_block = 0; c_block < collapsed_dim_size; c_block += BLOCK_C) {
+        for (int64_t w_block = 0; w_block < ti.tile_in_w; w_block += BLOCK_W) {
+            for (int64_t vec_idx = 0; vec_idx < BLOCK_C; vec_idx += 16) {
+                // 确定实际块边界
+                const int64_t max_c = std::min(c_block + BLOCK_C, collapsed_dim_size);
+                const int64_t max_w = std::min(w_block + BLOCK_W, ti.tile_in_w);
+                const int64_t c = c_block + vec_idx;
+                
+                // 检查是否超出边界
+                if (c >= max_c) continue;
+                
+                // AVX-512处理的元素数量
+                const int64_t block_size = std::min<int64_t>(16, max_c - c);
+                __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+                
+                // 预加载常量向量
+                __m512 vneg_one = _mm512_set1_ps(-1.0f);
+                __m512 vtwo = _mm512_set1_ps(2.0f);
+                __m512 vfour = _mm512_set1_ps(4.0f);
+                __m512 veight = _mm512_set1_ps(8.0f);
+                __m512 vneg_two = _mm512_set1_ps(-2.0f);
+                __m512 vneg_eight = _mm512_set1_ps(-8.0f);
+                
+                // 对每个块内的列进行处理
+                for (int64_t w = w_block; w < max_w; ++w) {
+                    // 预取下一列数据
+                    if (w + 1 < max_w) {
+                        _mm_prefetch(&M_tensor[0][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&M_tensor[1][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&M_tensor[2][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&M_tensor[3][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&M_tensor[4][w+1][c], _MM_HINT_T0);
+                        _mm_prefetch(&M_tensor[5][w+1][c], _MM_HINT_T0);
+                    }
+                    
+                    // 向量化变换计算
+                    __m512 vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[0][w][c]);
+                    __m512 vr0 = vz4;
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[1][w][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    __m512 vr1 = vz4;
+                    __m512 vr2 = vz4;
+                    __m512 vr3 = vz4;
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[2][w][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    vr1 = _mm512_fmadd_ps(vneg_one, vz4, vr1);
+                    vr2 = _mm512_add_ps(vr2, vz4);
+                    vr3 = _mm512_fmadd_ps(vneg_one, vz4, vr3);
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[3][w][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    vr1 = _mm512_fmadd_ps(vtwo, vz4, vr1);
+                    vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+                    vr3 = _mm512_fmadd_ps(veight, vz4, vr3);
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[4][w][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    vr1 = _mm512_fmadd_ps(vneg_two, vz4, vr1);
+                    vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+                    vr3 = _mm512_fmadd_ps(vneg_eight, vz4, vr3);
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &M_tensor[5][w][c]);
+                    vr3 = _mm512_add_ps(vr3, vz4);
+                    
+                    // 存储结果
+                    _mm512_mask_storeu_ps(&Y_tensor[0][w][c], k_mask, vr0);
+                    _mm512_mask_storeu_ps(&Y_tensor[1][w][c], k_mask, vr1);
+                    _mm512_mask_storeu_ps(&Y_tensor[2][w][c], k_mask, vr2);
+                    _mm512_mask_storeu_ps(&Y_tensor[3][w][c], k_mask, vr3);
+                }
+            }
+        }
+    }
+
+    // 列变换分块处理
+    #pragma omp parallel for collapse(3) schedule(guided) num_threads(threads_max)
+    for (int64_t c_block = 0; c_block < collapsed_dim_size; c_block += BLOCK_C) {
+        for (int64_t h_block = 0; h_block < ti.tile_out_h; h_block += BLOCK_H) {
+            for (int64_t vec_idx = 0; vec_idx < BLOCK_C; vec_idx += 16) {
+                // 确定实际块边界
+                const int64_t max_c = std::min(c_block + BLOCK_C, collapsed_dim_size);
+                const int64_t max_h = std::min(h_block + BLOCK_H, ti.tile_out_h);
+                const int64_t c = c_block + vec_idx;
+                
+                // 检查是否超出边界
+                if (c >= max_c) continue;
+                
+                // AVX-512处理的元素数量
+                const int64_t block_size = std::min<int64_t>(16, max_c - c);
+                __mmask16 k_mask = (block_size == 16) ? 0xFFFF : (1 << block_size) - 1;
+                
+                // 预加载常量向量
+                __m512 vneg_one = _mm512_set1_ps(-1.0f);
+                __m512 vtwo = _mm512_set1_ps(2.0f);
+                __m512 vfour = _mm512_set1_ps(4.0f);
+                __m512 veight = _mm512_set1_ps(8.0f);
+                __m512 vneg_two = _mm512_set1_ps(-2.0f);
+                __m512 vneg_eight = _mm512_set1_ps(-8.0f);
+                
+                // 对每个块内的行进行处理
+                for (int64_t h = h_block; h < max_h; ++h) {
+                    // 预取下一行数据
+                    if (h + 1 < max_h) {
+                        _mm_prefetch(&Y_tensor[h+1][0][c], _MM_HINT_T0);
+                        _mm_prefetch(&Y_tensor[h+1][1][c], _MM_HINT_T0);
+                        _mm_prefetch(&Y_tensor[h+1][2][c], _MM_HINT_T0);
+                        _mm_prefetch(&Y_tensor[h+1][3][c], _MM_HINT_T0);
+                        _mm_prefetch(&Y_tensor[h+1][4][c], _MM_HINT_T0);
+                        _mm_prefetch(&Y_tensor[h+1][5][c], _MM_HINT_T0);
+                    }
+                    
+                    // 向量化变换计算
+                    __m512 vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][0][c]);
+                    __m512 vr0 = vz4;
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][1][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    __m512 vr1 = vz4;
+                    __m512 vr2 = vz4;
+                    __m512 vr3 = vz4;
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][2][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    vr1 = _mm512_fmadd_ps(vneg_one, vz4, vr1);
+                    vr2 = _mm512_add_ps(vr2, vz4);
+                    vr3 = _mm512_fmadd_ps(vneg_one, vz4, vr3);
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][3][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    vr1 = _mm512_fmadd_ps(vtwo, vz4, vr1);
+                    vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+                    vr3 = _mm512_fmadd_ps(veight, vz4, vr3);
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][4][c]);
+                    vr0 = _mm512_add_ps(vr0, vz4);
+                    vr1 = _mm512_fmadd_ps(vneg_two, vz4, vr1);
+                    vr2 = _mm512_fmadd_ps(vfour, vz4, vr2);
+                    vr3 = _mm512_fmadd_ps(vneg_eight, vz4, vr3);
+                    
+                    vz4 = _mm512_maskz_loadu_ps(k_mask, &Y_tensor[h][5][c]);
+                    vr3 = _mm512_add_ps(vr3, vz4);
+                    
+                    // 存储最终结果
+                    _mm512_mask_storeu_ps(&Y_tensor[h][0][c], k_mask, vr0);
+                    _mm512_mask_storeu_ps(&Y_tensor[h][1][c], k_mask, vr1);
+                    _mm512_mask_storeu_ps(&Y_tensor[h][2][c], k_mask, vr2);
+                    _mm512_mask_storeu_ps(&Y_tensor[h][3][c], k_mask, vr3);
+                }
+            }
+        }
+    }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 void filter_packing(float *__restrict__ filter, float *__restrict__ packed_filter, const filter_shape_t fs) {
   typedef float(*filter_tensor_t)[fs.ic][fs.h][fs.w];
@@ -1418,6 +1934,7 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
     const int n = us.oc;        // 输出矩阵的列数
     const int k = us.ic;    // 内部维度
 
+
     const int cpu_limit = 256 * 256 * 512; // CPU限制
     if(m*n*k < cpu_limit)
     {
@@ -1430,10 +1947,10 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
         float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
         
           filter_packing(filter, packed_filter, fs);
-          filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
+          filter_transform_blocked(packed_filter, U, fs, us, us.oc * us.ic);
         
           image_packing(image, packed_image, is, ti);
-          image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
+          image_transform_blocked(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
       
       //CUDA Prepare
         #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
@@ -1459,7 +1976,7 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
           
         }
             
-        output_transform(M, Y, ti, us.oc * vs.num_tiles);
+        output_transform_blocked(M, Y, ti, us.oc * vs.num_tiles);
         output_unpacking_store(Y, out, os, ti);
         
         //destroy_cublas();
@@ -1504,28 +2021,26 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
             init_cublas();
             init_flag = true;
         }*/
-        
+
+
         // 初始化内存池（如果是第一次使用）
         if (!pool_initialized) {
-            // 创建CUDA流
-            init_cublas();
+            // 创建CUDA流            
+            
+            init_cublas();exit(0);
             
              // 预分配所有内存，确保大小足够
-             if(mem_pre_allocated=0)
+             if(mem_pre_allocated)
              {
                 //分配总内存，然后平分给每个矩阵
-                cudaMallocHost((void **)&total_pinned_memory, init_memsize);
-                long long offset_mem = init_memsize / (3 * sizeof(float));
-                g_pinned_U = (float *)total_pinned_memory;
-                g_pinned_V = (float *)(total_pinned_memory + offset_mem);
-                g_pinned_M = (float *)(total_pinned_memory + 2 * offset_mem);
              }
             
             // 标记为已初始化
             pool_initialized = true;
         }
-
         
+
+
         float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
         float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
         float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
@@ -1534,10 +2049,12 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
         float *temp_U = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic);
         float *temp_V = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.ic * vs.num_tiles);
 
+        bool memory_ok = false;
+
         //ensure时间很长，避免这时cpu空闲
-        #pragma omp parallel sections
+        //#pragma omp parallel sections
         {
-            #pragma omp section
+            //#pragma omp section
             {        
                 filter_packing(filter, packed_filter, fs);
                 filter_transform(packed_filter, temp_U, fs, us, us.oc * us.ic);
@@ -1545,10 +2062,10 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
                 image_transform(packed_image, temp_V, vs, ti, vs.ic * vs.num_tiles);
             }
 
-            #pragma omp section
+            //#pragma omp section
             {         
               // 确保所有内存大小足够
-                bool memory_ok = 
+                 memory_ok = 
                     ensure_memory_size((void**)&g_pinned_U, &g_pinned_U_size, pinned_U_req_size, true) &&
                     ensure_memory_size((void**)&g_pinned_V, &g_pinned_V_size, pinned_V_req_size, true) &&
                     ensure_memory_size((void**)&g_pinned_M, &g_pinned_M_size, pinned_M_req_size, true) &&
@@ -1558,11 +2075,17 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
             }
         }
 
+        if(memory_ok == false)
+        {
+            fprintf(stderr,"Failed to allocate memory\n");
+            free(packed_filter);
+            free(packed_image);
+            free(temp_U);
+            free(temp_V);
+            return;
+        }
         memcpy(g_pinned_V, temp_V, batch_size * A_size * sizeof(float));
         memcpy(g_pinned_U, temp_U, batch_size * B_size * sizeof(float));
-        
-        // 设置 cublas 流
-        //cublasSetStream(cublas_handle, g_stream);
 
         // 普通内存分配（这些较小，可以每次重新分配）
 
