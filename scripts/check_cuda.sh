@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH -o cuda_info-hepnode2.out
 #SBATCH -e cuda_info.err
-#SBATCH --exclude hepnode0,hepnode3,hepnode1
+#SBATCH --exclude hepnode0,hepnode2,hepnode1
 
 echo "======================= CUDA 信息查询 ======================="
 echo "主机名: $(hostname)"

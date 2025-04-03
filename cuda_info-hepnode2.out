@@ -1,12 +1,12 @@
 ======================= CUDA 信息查询 =======================
-主机名: hepnode2
-执行日期: Wed Apr  2 07:09:59 PM CST 2025
+主机名: hepnode3
+执行日期: Wed Apr  2 08:18:21 PM CST 2025
 ======================= 环境变量 =======================
 CUDA_HOME: 
-PATH: /data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand
+PATH: /data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64:/data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand:/data/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/intel-oneapi-vtune-2024.0.1-w6lwvbxd4wkqfv4m5tgkvamrxbvllffr/vtune/2024.0/bin64:/data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand
 LD_LIBRARY_PATH: 
 ======================= CUDA 安装位置 =======================
-CUDA软链接指向: lrwxrwxrwx 1 root root 21 Sep 19  2024 /usr/local/cuda -> /usr/local/cuda-12.6/
+CUDA软链接指向: lrwxrwxrwx 1 root root 21 Sep 21  2024 /usr/local/cuda -> /usr/local/cuda-12.6/
 CUDA可执行文件位置: nvcc not found
 CUDA版本: nvcc not found
 ======================= CUDA 库文件 =======================
@@ -17,7 +17,7 @@ CUBLAS库: 	libcublasLt.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86
 	libcublas.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12
 	libcublas.so (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so
 ======================= GPU 设备信息 =======================
-Wed Apr  2 19:09:59 2025       
+Wed Apr  2 20:18:21 2025       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
 |-----------------------------------------+------------------------+----------------------+
@@ -26,11 +26,11 @@ Wed Apr  2 19:09:59 2025
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA L40                     Off |   00000000:4B:00.0 Off |                    0 |
-| N/A   32C    P8             34W /  300W |       1MiB /  46068MiB |      0%      Default |
+| N/A   30C    P8             69W /  300W |       4MiB /  46068MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 |   1  NVIDIA L40                     Off |   00000000:B1:00.0 Off |                    0 |
-| N/A   25C    P8             36W /  300W |       1MiB /  46068MiB |      0%      Default |
+| N/A   23C    P8             24W /  300W |       4MiB /  46068MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
                                                                                          
