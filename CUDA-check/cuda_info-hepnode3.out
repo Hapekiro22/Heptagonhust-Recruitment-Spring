@@ -1,0 +1,65 @@
+======================= CUDA 信息查询 =======================
+主机名: hepnode3
+执行日期: Sun Mar 30 12:28:04 PM CST 2025
+======================= 环境变量 =======================
+CUDA_HOME: 
+PATH: /data/spack/bin:/home/lyt/.vscode-server/cli/servers/Stable-ddc367ed5c8936efe395cffeec279b04ffd7db78/server/bin/remote-cli:/data/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/lyt/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand
+LD_LIBRARY_PATH: 
+======================= CUDA 安装位置 =======================
+CUDA软链接指向: lrwxrwxrwx 1 root root 21 Sep 21  2024 /usr/local/cuda -> /usr/local/cuda-12.6/
+CUDA可执行文件位置: nvcc not found
+CUDA版本: nvcc not found
+======================= CUDA 库文件 =======================
+CUDA运行时库: 	libcudart.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcudart.so.12
+	libcudart.so (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcudart.so
+CUBLAS库: 	libcublasLt.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublasLt.so.12
+	libcublasLt.so (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublasLt.so
+	libcublas.so.12 (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12
+	libcublas.so (libc6,x86-64) => /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so
+======================= GPU 设备信息 =======================
+Sun Mar 30 12:28:04 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA L40                     Off |   00000000:4B:00.0 Off |                    0 |
+| N/A   28C    P8             25W /  300W |       4MiB /  46068MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA L40                     Off |   00000000:B1:00.0 Off |                    0 |
+| N/A   23C    P8             22W /  300W |       4MiB /  46068MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+======================= CUDA 头文件位置 =======================
+/usr/include/linux/cuda.h
+/usr/include/hwloc/cuda.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cuda.h
+======================= 可能的 CUDA 路径 =======================
+/usr/local/cuda-12.6/targets/x86_64-linux/include/thrust/system/cuda
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cuda
+/opt/intel/oneapi/compiler/2024.2/include/sycl/ext/oneapi/experimental/cuda
+/opt/intel/oneapi/2024.2/include/sycl/ext/oneapi/experimental/cuda
+======================= 模块系统检查 =======================
+模块系统不可用或未找到 CUDA 模块
+======================= 检查 cuBLAS 可用性 =======================
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublas.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublasLt.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublasXt.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublas_api.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublas_v2.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublas.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublasLt.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublasXt.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublas_api.h
+/usr/local/cuda-12.6/targets/x86_64-linux/include/cublas_v2.h

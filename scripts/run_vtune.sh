@@ -16,6 +16,13 @@ DEFAULT_VERSION="default"
 DEFAULT_TEST="0"
 DEFAULT_PORT="8080"
 
+# Note: Set CUDA environment variables
+export CUDA_VISIBLE_DEVICES=0
+export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/usr/local/cuda/targets/x86_64-linux/lib:$LD_LIBRARY_PATH
+
+eval $(spack load --sh cuda@12.8.0)
+
+
 # 检查版本参数
 if [ -z "$1" ]; then
     VERSION="$DEFAULT_VERSION"

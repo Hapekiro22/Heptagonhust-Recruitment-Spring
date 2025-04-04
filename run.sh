@@ -24,25 +24,25 @@ eval $(spack load --sh cuda@12.8.0)
 
 # "Parameters: [version:vx.x.x] [input_config(0/1)]"
 
+directory=Best_Results_data
+
 nvcc --version
 
-directory=result_data
-version=$1
-
-if [ "$2" == "1" ]; then
+if [ "$1" == "1" ]; then
 	#Use vgg16.conf
 	CONFIG_FILE="conf/vgg16.conf"
-	OUTPUT_FILE="$directory/$version-big.out"
-elif [ "$2" == "0" ]; then
+	OUTPUT_FILE="$directory/result-validation-big.out"
+elif [ "$1" == "0" ]; then
 	#Use small.conf
 	CONFIG_FILE="conf/small.conf"
-	OUTPUT_FILE="$directory/$version-small.out"
+	OUTPUT_FILE="$directory/result-small.out"
 else
-	echo "Wrong Parameters!"
+	CONFIG_FILE="conf/vgg16.conf"
+	OUTPUT_FILE="$directory/result-big.out"
 
 fi 
 
-numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
+numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE 0
 
 #perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 
