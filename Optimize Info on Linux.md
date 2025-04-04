@@ -239,3 +239,115 @@ nsys数据说明，最大的性能瓶颈在数据传输上
 
 尝试2：
     transform与packing合并处理
+
+
+## v0.9
+
+方向1：
+    单精度浮点数修复：cpu内32算，转bf16进，转fp32计算，再转bf16出，转32计算
+    更好的是fp16,fp32 cal fp16 out
+
+方向2：
+    transform拆分，先把循环交换，这样第二层循环完成后就可以生成1*6个处理好的image和filter
+    batch按照此分为6份，与之匹配，直接开始传输运算；当运算完成一批后直接传入outputtrans
+    生成output（可能性更大）
+
+    具体步骤：
+        trans函数做小分块，投入循环
+        各个流分立进行，施行并行
+        同步设置有问题，只同步了DTOH，没同步前面的；导致过早的进入下一轮计算，偏移量发生改变，第一轮写回的时候使用的是第二轮的偏移量
+        所以会出错；现在两种修复方案：1.修改同步；2.建立数组
+
+
+        1.trans执行一次，但是存在六个出口，只要完成一次传输，就进入计算
+                    （但是这需要openmp并行函数，开销可能很大）
+                    2.使用小尺寸的trans，直接放到多流循环体内然后并行执行
+
+方向3：
+    方向1与方向2结合；但这时转换成本很大
+
+    方向4
+    最不利情况：
+        就同步out
+
+
+0.先建立内存缓冲区，避免数据冲突
+    output内存建立缓冲区
+    发现只要DTOH时间过长，覆盖了多个HTOD（非同流）就会出错
+    现在的方法是，手动添加delay，让DTOH只与一个HTOD重叠
+    还有一个方法是：降低DTOH时间-----转化成bf16输出；
+
+    除了第一层外，这是一个不错的参数--0.8.6.14
+
+                if(i > 1)
+            cudaEventSynchronize(stream_start_events[i-1]);
+
+            if(calledcount == 0)
+            {
+                delay_between_streams = 13.0f;
+            }
+
+            else if(calledcount >= 1 && calledcount <= 5)
+            {
+                delay_between_streams = 1.0f;
+            }
+
+            else if(calledcount >= 5)
+            {
+                delay_between_streams = 0.1f;
+            }-
+
+最大的问题其实不是delay的处理，而是如何削减传输时间；
+正是过大的传输时间差异导致了这一结果
+
+当然根据输入输出量做特征优化也是可行的，不过需要做具体分析
+
+delay：
+        //分批次处理
+        //#pragma omp parallel for schedule(dynamic) num_threads(stream_count*2)
+        for(int i = 0; i < stream_count; i++)
+        {
+            if(i > 1)
+            cudaEventSynchronize(stream_start_events[i-1]);
+
+            if(calledcount == 0)
+            {
+                delay_between_streams = 0.0f;
+            }
+
+            else if(calledcount >= 1 && calledcount <= 2)
+            {
+                delay_between_streams = 0.0f;
+            }
+
+            else if(calledcount >= 18)
+            {
+                delay_between_streams = 0.35f;
+            }
+
+            if(i > 1)
+            std::this_thread::sleep_for(std::chrono::milliseconds((int)delay_between_streams));
+
+            cudaEventRecord(stream_start_events[i], g_streams[i]);
+
+
+## v0.8.7 尝试添加DTOH同步点，避免多传输重叠
+    存在具体问题，暂时不处理了；没有从根本上解决
+
+## v0.8.8 尝试降低传输精度
+
+## v0.9
+    成功降低精度，但是精度转换函数浪费了大量时间
+    基本可以放弃这个方法了，因为成本很难压下去，换得的传输时间也没多少
+    同时，放弃传输并行，但可以做到预处理并行！！！毕竟其实cpu计算部分是更大的瓶颈，非同步的牺牲很小
+
+    对于transform函数，input的第一阶段集成进行，第二阶段分batch投入多流中进行
+    output第一阶段分batch进行，第二阶段集成进行
+
+    按照output（i-1）- input（i）的顺序在DTOH（i-1）上进行
+    
+    还有一个小优化：让句柄的初次创建和trans等等一并进行(负优化，cublas初始化时间太长了)
+    注：向量化还是快一点，但是没那么多，不必要必须用
+
+### v0.9.5
+    CUDA预热，加速比提升 147x 

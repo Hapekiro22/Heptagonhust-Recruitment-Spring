@@ -41,7 +41,7 @@ else
 	echo "Wrong Parameters!"
 
 fi 
- 
+
 numactl --cpunodebind=0-3 --membind=0-3 perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE
 
 #perf stat -ddd ./winograd $CONFIG_FILE > $OUTPUT_FILE

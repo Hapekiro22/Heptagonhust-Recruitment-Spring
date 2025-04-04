@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "utils.h"
+#include "winograd.h"
 
 //-----------------------------------------------CUDA------------------------------------------------------//
 
@@ -136,7 +137,7 @@ __global__ void image_packing_kernel(
       float *__restrict__ image,
       float *__restrict__ packed_image,
       const image_shape_t is,
-      const tilling_info_t ti)
+      const tiling_info_t ti)
 {
 
       int tile = blockIdx.x * blockDim.x + threadIdx.x;
@@ -173,28 +174,6 @@ __global__ void image_packing_kernel(
 
 }
 
-__global__ void filter_packing_kernel(
-  float *__restrict__ filter,
-  float *__restrict__ packed_filter,
-  const filter_shape_t fs)
-{
-  // 计算线程索引
-  int h = blockIdx.x * blockDim.x + threadIdx.x;
-  int w = blockIdx.y * blockDim.y + threadIdx.y;
-  int oc = blockIdx.z * blockDim.z + threadIdx.z;
-  
-  if (h >= fs.h || w >= fs.w || oc >= fs.oc) return;
-  
-  // 获取filter_tensor和packed_filter_tensor的对应关系
-  int64_t packed_filter_offset = (h * fs.w + w) * fs.oc * fs.ic + oc * fs.ic;
-  int64_t filter_oc_offset = oc * fs.ic * fs.h * fs.w;
-  
-  for (int ic = 0; ic < fs.ic; ++ic) {
-      int64_t filter_idx = filter_oc_offset + ic * fs.h * fs.w + h * fs.w + w;
-      packed_filter[packed_filter_offset + ic] = filter[filter_idx];
-  }
-}
-
 
 __global__ void  image_transform_kernel(
   float *packed_image,          // CHWN 布局的打包输入
@@ -216,7 +195,7 @@ __global__ void  image_transform_kernel(
       //边界
       if (batchid >= num_tiles || channelid >= ic) return;
 
-      const int collaspsed_idx = batchid * ic + channelid;
+      const int collapsed_idx = batchid * ic + channelid;
 
       __shared__ float s_tile[256][6];
 
@@ -389,20 +368,28 @@ void image_packing_cuda(
 void image_transform_cuda(
   float *__restrict__ d_packed_image,
   float *__restrict__ d_V,
-  const V_shape_t vs,
   const tiling_info_t ti,
-  const int64_t collapsed_dim_size)
+  const int64_t num_tiles,
+  const int64_t ic)
 {
   // 设置核函数执行配置
   const int threadsPerBlock = 256;
-  const int blocksNeeded = (collapsed_dim_size + threadsPerBlock - 1) / threadsPerBlock;
+  
+  // 计算网格大小 - 每个线程块处理32个tiles和8个channels
+  const int blocksX = (num_tiles + 31) / 32;
+  const int blocksY = (ic + 7) / 8;
+  
+  dim3 gridDim(blocksX, blocksY);
   
   // 调用CUDA核函数
-  image_transform_kernel<<<blocksNeeded, threadsPerBlock>>>(
-      d_packed_image, d_V, vs, ti, collapsed_dim_size);
+  image_transform_kernel<<<gridDim, threadsPerBlock, 0, stream>>>(
+      d_packed_image, d_V, ti, num_tiles, ic);
   
   // 检查错误
-  CHECK_CUDA_ERROR(cudaGetLastError());
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf(stderr, "CUDA error in image_transform_cuda: %s\n", cudaGetErrorString(err));
+  }
 }
 
 //----------------------------------imgae processing------------------------------------------//
@@ -1310,9 +1297,9 @@ void winograd_convolution(
 
     if(!init) {
         initCUDA();
-        cublasStreamCreate(&stream);
-        cublasCreate(&handle);
-        cublasSetStream(handle, stream);
+        cudaStreamCreate(&stream);
+        cublasCreate(&cublas_handle);
+        cublasSetStream(cublas_handle, stream);
 
         init = true;
     }
@@ -1330,7 +1317,7 @@ void winograd_convolution(
 
     ensure_mem_size((void **)&g_image, &gimage_cur_size,image_size,false);
     ensure_mem_size((void **)&g_filter, &gfilter_cur_size,filter_size,false);
-    ensure_mem_size((void **)&g_out, &gout_cur_size,out_size,false);
+    ensure_mem_size((void **)&g_output, &goutput_cur_size,out_size,false);
 
     ensure_mem_size((void **)&g_packed_image, &g_packed_image_size, packed_image_size, false);
     ensure_mem_size((void **)&g_packed_filter, &g_packed_filter_size, packed_filter_size, false);
@@ -1339,9 +1326,9 @@ void winograd_convolution(
     ensure_mem_size((void **)&g_M, &g_M_size, M_size, false);
     ensure_mem_size((void **)&g_Y, &g_Y_size, Y_size, false);
 
-    ensure_mem_size((void **)&image, &pimage_cur_size,image_size,true);
-    ensure_mem_size((void **)&filter, &pfilter_cur_size,filter_size,true);
-    ensure_mem_size((void **)&out, &pout_cur_size,out_size,true);
+    ensure_mem_size((void **)&pin_image, &pimage_cur_size,image_size,true);
+    ensure_mem_size((void **)&pin_filter, &pfilter_cur_size,filter_size,true);
+    ensure_mem_size((void **)&pin_output, &poutput_cur_size,out_size,true);
 
     memcpy(pin_image, image, image_size);
     memcpy(pin_filter, filter, filter_size);
@@ -1353,7 +1340,7 @@ void winograd_convolution(
     image_packing_cuda(g_image, g_packed_image, is, ti);
 
     filter_transform_cuda(g_packed_filter, g_U, fs, fs.oc, fs.ic);
-    image_transform_cuda(g_packed_image, g_V, vs, ti, ti.num_tiles * is.ic);
+    image_transform_cuda(g_packed_image, g_V, ti, ti.num_tiles, is.ic);
 
     int batch_count = ti.tile_in_h * ti.tile_in_w;
 
@@ -1369,7 +1356,7 @@ void winograd_convolution(
     const float beta = 0.0f;
 
     cublasGemmStridedBatchedEx(
-      handle,
+      cublas_handle,
       CUBLAS_OP_T,
       CUBLAS_OP_N,
       m,
@@ -1391,15 +1378,15 @@ void winograd_convolution(
       C_size,
       batch_count,
       CUDA_R_32F,
-      CUBLAS_GEMM_DEFAULT,
+      CUBLAS_GEMM_DEFAULT
     );
 
     output_transform_cuda(g_M, g_Y, ti, vs.num_tiles, us.oc);
-    output_unpacking_cuda(g_Y, g_out, os, ti);
+    output_unpacking_cuda(g_Y, g_output, os, ti);
 
-    cudaMemcpyAsync(pin_out, g_out, out_size, cudaMemcpyDeviceToHost, stream);
+    cudaMemcpyAsync(pin_output, g_output, out_size, cudaMemcpyDeviceToHost, stream);
     cudaStreamSynchronize(stream);
 
-    memcpy(out, pin_out, out_size);  
+    memcpy(out, pin_output, out_size);  
 
 }
