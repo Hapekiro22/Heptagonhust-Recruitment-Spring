@@ -278,11 +278,9 @@ bool ensure_memory_size(void **mem, size_t *current_size, size_t required_size, 
 // 预热CUDA环境和cuBLAS
 __attribute__((constructor))
 void warmup_cuda() {
-    // 分配一个小的设备内存块触发CUDA上下文初始化
     float *d_dummy;
     cudaMalloc(&d_dummy, 1024);
-    
-    // 创建一个主要的cuBLAS句柄
+  
     cublasHandle_t temp_handle;
     cublasCreate(&temp_handle);
     
@@ -1318,6 +1316,8 @@ void filter_transform_stage2(float *__restrict__ packed_filter,
   //计算特定流的偏移量
   int64_t h_offset = offset;  
 
+  //printf("Filiter transform stage2 called for stream %d   ", offset);
+
   //处理完一整行的数据后，立刻将结果存入GPU
   for(int idx = 0; idx < collapsed_dim_size; idx++){
 
@@ -1351,6 +1351,8 @@ void filter_transform_stage2(float *__restrict__ packed_filter,
     U_tensor[4][h_offset][idx] = zgroup.z4;
     U_tensor[5][h_offset][idx] = zgroup.z5;
   }
+
+  //printf("---Called ended\n");
 }
 
 
@@ -1490,7 +1492,7 @@ void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B
 
 //------------------------------------------------Finish--------------------------------------------------//
 
-void winograd_convolution(float *__restrict__ image, const int image_height,
+void winograd_convolution_single(float *__restrict__ image, const int image_height,
   const int image_width, const int input_channel_num,
   float *__restrict__ filter, const int output_channel_num,
   const int batch_num, float *__restrict__ out) {
@@ -1567,7 +1569,7 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
           
         }
             
-        output_transform_blocked(M, Y, ti, us.oc * vs.num_tiles);
+        output_transform(M, Y, ti, us.oc * vs.num_tiles);
         output_unpacking_store(Y, out, os, ti);
         
         //destroy_cublas();
@@ -1616,7 +1618,6 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
 
         // 在winograd_convolution函数中
         if (!pool_initialized) {
-          // 异步初始化CUBLAS
 
               init_cublas();
               pool_initialized = true;
@@ -1640,7 +1641,6 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
 
         }
       
-        // 普通内存分配（这些较小，可以每次重新分配）
 
         filter_transform(packed_filter, g_pinned_U, fs, us, us.oc * us.ic);
 
@@ -1766,3 +1766,261 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
 
 
 /////////////////////////////////////////////////////////////////////////////
+
+
+void winograd_convolution(float *__restrict__ image, const int image_height,
+  const int image_width, const int input_channel_num,
+  float *__restrict__ filter, const int output_channel_num,
+  const int batch_num, float *__restrict__ out) {
+    // 基本数据准备保持不变
+    const image_shape_t is = {.bs = batch_num, .ic = input_channel_num, .h = image_height, .w = image_width};
+    const filter_shape_t fs = {.oc = output_channel_num, .ic = input_channel_num, .h = FLT_H, .w = FLT_W};
+    const out_shape_t os = get_output_shape(is, fs);
+    const tiling_info_t ti = get_tiling_info(is, os);
+    const U_shape_t us = get_U_shape(fs, ti);
+    const V_shape_t vs = get_V_shape(is, ti);
+
+    const int m = vs.num_tiles;  // 输出矩阵的行数
+    const int n = us.oc;        // 输出矩阵的列数
+    const int k = us.ic;    // 内部维度
+
+    const int cpu_limit = 256 *256 * 512; // CPU限制
+    if(m*n*k < cpu_limit)
+    {
+        //printf("CPU\n");
+        float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
+        float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
+        float *U = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic);
+        float *V = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.num_tiles * vs.ic);
+        float *M = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles);
+        float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
+          
+        filter_packing(filter, packed_filter, fs);
+        filter_transform(packed_filter, U, fs, us, us.oc * us.ic);
+        
+        image_packing(image, packed_image, is, ti);
+        image_transform(packed_image, V, vs, ti, vs.ic * vs.num_tiles);
+
+      //CUDA Prepare
+        #pragma omp parallel for collapse(2) schedule(guided) num_threads(threads_max)
+        for (int64_t h = 0; h < ti.tile_in_h; ++h) {
+            for (int64_t w = 0; w < ti.tile_in_w; ++w) {
+                typedef float(*U_tensor_t)[ti.tile_in_w][us.oc][us.ic];
+                typedef float(*V_tensor_t)[ti.tile_in_w][vs.num_tiles][vs.ic];
+                typedef float(*M_tensor_t)[ti.tile_in_w][us.oc][vs.num_tiles];
+                U_tensor_t U_tensor = (U_tensor_t)U;
+                V_tensor_t V_tensor = (V_tensor_t)V;
+                M_tensor_t M_tensor = (M_tensor_t)M;
+            
+                // 初始化 M_tensor[h][w] 为 0
+                //memset(M_tensor[h][w], 0, sizeof(float) * us.oc * vs.num_tiles);
+                sgemm(vs.num_tiles,
+                  us.oc,
+                  us.ic,
+                  (float *)(V_tensor[h][w]),
+                  (float *)(U_tensor[h][w]),
+                  (float *)(M_tensor[h][w]));
+    
+              }
+          
+        }
+            
+        output_transform(M, Y, ti, us.oc * vs.num_tiles);
+        output_unpacking_store(Y, out, os, ti);
+        
+        //destroy_cublas();
+      
+        free(packed_filter);
+        free(packed_image);
+        free(U);
+        free(V);
+        free(M);
+        free(Y);
+
+        return;
+    }
+
+    
+    else{
+
+        //计算批次数量
+        int batch_size = ti.tile_in_h * ti.tile_in_w;
+        int batch_per_stream = batch_size / stream_count;
+        int remainder = batch_size % stream_count;
+        //printf("Total batch size: %d\n", batch_size);
+
+        //printf("CUDA\n");
+          // 计算所需内存大小
+        const long long A_size = vs.num_tiles * vs.ic;  // V矩阵大小
+        const long long B_size = us.oc * us.ic;        // U矩阵大小
+        const long long C_size = vs.num_tiles * us.oc;  // M矩阵大小
+        
+        size_t pinned_U_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * us.ic ;
+        size_t pinned_V_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * vs.num_tiles * vs.ic ;
+        size_t pinned_M_req_size = sizeof(float) * ti.tile_in_h * ti.tile_in_w * us.oc * vs.num_tiles ;
+        
+        size_t d_A_req_size = sizeof(float) * batch_size * A_size ;
+        size_t d_B_req_size = sizeof(float) * batch_size * B_size ;
+        size_t d_C_req_size = sizeof(float) * batch_size * C_size ;
+
+
+        float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
+        float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
+        float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
+
+        // 在winograd_convolution函数中
+        if (!pool_initialized) {
+          // 异步初始化CUBLAS
+
+              init_cublas();
+              pool_initialized = true;
+          
+        } 
+        
+        filter_packing(filter, packed_filter, fs);
+        image_packing(image, packed_image, is, ti);      
+
+        bool memory_ok = false;
+
+        if(1)
+        {
+              memory_ok = 
+              ensure_memory_size((void**)&g_pinned_U, &g_pinned_U_size, pinned_U_req_size, true) &&
+              ensure_memory_size((void**)&g_pinned_V, &g_pinned_V_size, pinned_V_req_size, true) &&
+              ensure_memory_size((void**)&g_pinned_M, &g_pinned_M_size, pinned_M_req_size, true) &&
+              ensure_memory_size((void**)&g_d_A, &g_d_A_size, d_A_req_size, false) &&
+              ensure_memory_size((void**)&g_d_B, &g_d_B_size, d_B_req_size, false) &&
+              ensure_memory_size((void**)&g_d_C, &g_d_C_size, d_C_req_size, false);
+
+        }
+      
+        //transform第一阶段预处理
+        filter_transform_stage1(packed_filter, g_pinned_U, fs, us, us.oc * us.ic);
+        image_transform_stage1(packed_image, g_pinned_V, vs, ti, vs.ic * vs.num_tiles);
+
+
+        //偏移量预处理
+        //注：这里streamcount = tile_in_h = tile_in_w，所以用流数目替代行数
+        int *offset_U = (int *)malloc(sizeof(int) * stream_count);
+        int *offset_V = (int *)malloc(sizeof(int) * stream_count);
+        int *offset_M = (int *)malloc(sizeof(int) * stream_count);
+
+        int *offset_d_A = (int *)malloc(sizeof(int) * stream_count);
+        int *offset_d_B = (int *)malloc(sizeof(int) * stream_count);
+        int *offset_d_C = (int *)malloc(sizeof(int) * stream_count);
+
+        for(int i = 0; i < stream_count; i++)
+        {
+            offset_U[i] = i * batch_per_stream * B_size;
+            offset_V[i] = i * batch_per_stream * A_size;
+            offset_M[i] = i * batch_per_stream * C_size;   
+
+            offset_d_A[i] = i * batch_per_stream * A_size;
+            offset_d_B[i] = i * batch_per_stream * B_size;
+            offset_d_C[i] = i * batch_per_stream * C_size;
+        }
+
+        //批处理乘法信息
+        // 步长 - 每个矩阵的大小（元素数量）
+        long long strideA = A_size;
+        long long strideB = B_size;
+        long long strideC = C_size;
+        
+        const float alpha = 1.0f;
+        const float beta = 0.0f;
+
+        //事件信息
+        cudaEvent_t stream_start_events[stream_count];
+        cudaEvent_t transform_complete[stream_count];
+        cudaEvent_t compute_complete[stream_count];
+
+        for (int i = 0; i < stream_count; i++) {
+          cudaEventCreate(&stream_start_events[i]);
+          cudaEventCreate(&transform_complete[i]);
+          cudaEventCreate(&compute_complete[i]);
+        }
+
+        //第一行预处理
+        filter_transform_stage2(g_pinned_U, g_pinned_U, fs, us, us.oc * us.ic, 0);
+        image_transform_stage2(g_pinned_V, g_pinned_V, vs, ti, vs.ic * vs.num_tiles, 0);
+        //cudaEventRecord(transform_complete[0], g_streams[0]);
+
+       /* for(int i = 1; i < stream_count; i++)
+        {
+            filter_transform_stage2(g_pinned_U, g_pinned_U, fs, us, us.oc * us.ic, i);
+            image_transform_stage2(g_pinned_V, g_pinned_V, vs, ti, vs.ic * vs.num_tiles, i);
+            //cudaEventRecord(transform_complete[i], g_streams[i]);
+        }*/
+
+        for(int i = 0; i < stream_count; i++)
+        {
+          
+          cublasSetStream(cublas_handles[i], g_streams[i]);
+          
+          cudaStreamWaitEvent(g_streams[i], transform_complete[i], 0);
+                      
+          cudaMemcpyAsync(g_d_A + offset_d_A[i], g_pinned_V + offset_V[i], batch_per_stream * A_size * sizeof(float), 
+                        cudaMemcpyHostToDevice, g_streams[i]);
+          cudaMemcpyAsync(g_d_B + offset_d_B[i], g_pinned_U + offset_U[i], batch_per_stream * B_size * sizeof(float),
+                      cudaMemcpyHostToDevice, g_streams[i]);
+          
+            
+          cublasGemmStridedBatchedEx(
+              cublas_handles[i],
+                CUBLAS_OP_T,           // A转置
+                CUBLAS_OP_N,           // B不转置
+                m,                     // 矩阵C的行数(vs.num_tiles)
+                n,                     // 矩阵C的列数(us.oc)
+                k,                     // 内部维度(us.ic)
+                &alpha,                // 缩放因子
+                g_d_A + offset_d_A[i],    // V矩阵起始地址
+                CUDA_R_32F,            // 数据类型:float
+                k,           // V矩阵的前导维度
+                strideA,               // V矩阵序列的步长
+                g_d_B + offset_d_B[i],    // U矩阵起始地址
+                CUDA_R_32F,            // 数据类型:float
+                k,                     // U矩阵的前导维度
+                strideB,               // U矩阵序列的步长
+                &beta,                 // 缩放因子
+                g_d_C + offset_d_C[i],    // M矩阵起始地址
+                CUDA_R_32F,            // 数据类型:float
+                m,                     // M矩阵的前导维度
+                strideC,               // M矩阵序列的步长
+                batch_per_stream,            // 批次数量
+                CUDA_R_32F,            // 计算类型:float
+                CUBLAS_GEMM_DEFAULT    // 使用默认算法
+          );
+
+          //cudaEventRecord(stream_start_events[i], g_streams[i]);
+
+          cudaMemcpyAsync(g_pinned_M + offset_M[i], g_d_C + offset_d_C[i], batch_per_stream * C_size * sizeof(float), 
+                      cudaMemcpyDeviceToHost, g_streams[i]);
+          cudaEventRecord(compute_complete[i], g_streams[i]);
+          //printf("DTOH started\n");
+
+          if(i + 1 < stream_count)
+          {
+              filter_transform_stage2(g_pinned_U, g_pinned_U, fs, us, us.oc * us.ic, i + 1);
+              image_transform_stage2(g_pinned_V, g_pinned_V, vs, ti, vs.ic * vs.num_tiles, i + 1);
+              cudaEventRecord(transform_complete[i + 1], g_streams[i + 1]);
+          }
+
+          cudaEventSynchronize(compute_complete[i]);
+          //printf("Stream %d compute complete\n\n", i);
+
+      }
+      
+      // 输出处理保持不变
+      output_transform(g_pinned_M, Y, ti, us.oc * vs.num_tiles);
+      output_unpacking_store(Y, out, os, ti);
+
+      // 释放普通内存
+      free(packed_filter);
+      free(packed_image);
+      free(Y);
+    
+    }
+
+    calledcount++;
+
+}
