@@ -2063,28 +2063,28 @@ void winograd_convolution_pipeline(float *__restrict__ image, const int image_he
             
           cublasGemmStridedBatchedEx(
               cublas_handles[i],
-                CUBLAS_OP_T,           // A转置
-                CUBLAS_OP_N,           // B不转置
-                m,                     // 矩阵C的行数(vs.num_tiles)
-                n,                     // 矩阵C的列数(us.oc)
-                k,                     // 内部维度(us.ic)
-                &alpha,                // 缩放因子
-                g_d_A + offset_d_A[i],    // V矩阵起始地址
-                CUDA_R_32F,            // 数据类型:float
-                k,           // V矩阵的前导维度
-                strideA,               // V矩阵序列的步长
-                g_d_B + offset_d_B[i],    // U矩阵起始地址
-                CUDA_R_32F,            // 数据类型:float
-                k,                     // U矩阵的前导维度
-                strideB,               // U矩阵序列的步长
-                &beta,                 // 缩放因子
-                g_d_C + offset_d_C[i],    // M矩阵起始地址
-                CUDA_R_32F,            // 数据类型:float
-                m,                     // M矩阵的前导维度
-                strideC,               // M矩阵序列的步长
-                batch_per_stream,            // 批次数量
-                CUDA_R_32F,            // 计算类型:float
-                CUBLAS_GEMM_DEFAULT    // 使用默认算法
+                CUBLAS_OP_T,           
+                CUBLAS_OP_N,          
+                m,                    
+                n,                    
+                k,                    
+                &alpha,               
+                g_d_A + offset_d_A[i],    
+                CUDA_R_32F,            
+                k,          
+                strideA,              
+                g_d_B + offset_d_B[i],   
+                CUDA_R_32F,            
+                k,                     
+                strideB,               
+                &beta,                 
+                g_d_C + offset_d_C[i],    
+                CUDA_R_32F,            
+                m,                    
+                strideC,              
+                batch_per_stream,           
+                CUDA_R_32F,            
+                CUBLAS_GEMM_DEFAULT   
           );
 
           //cudaEventRecord(stream_start_events[i], g_streams[i]);
