@@ -1433,11 +1433,10 @@ void sgemm(const int64_t M, const int64_t N, const int64_t K, float *A, float *B
   }
 }
 
-void winograd_convolution(float *__restrict__ image, const int image_height,
+void winograd_convolution_single(float *__restrict__ image, const int image_height,
   const int image_width, const int input_channel_num,
   float *__restrict__ filter, const int output_channel_num,
   const int batch_num, float *__restrict__ out) {
-    // 基本数据准备保持不变
     const image_shape_t is = {.bs = batch_num, .ic = input_channel_num, .h = image_height, .w = image_width};
     const filter_shape_t fs = {.oc = output_channel_num, .ic = input_channel_num, .h = FLT_H, .w = FLT_W};
     const out_shape_t os = get_output_shape(is, fs);
@@ -1478,8 +1477,6 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
                 V_tensor_t V_tensor = (V_tensor_t)V;
                 M_tensor_t M_tensor = (M_tensor_t)M;
             
-                // 初始化 M_tensor[h][w] 为 0
-                //memset(M_tensor[h][w], 0, sizeof(float) * us.oc * vs.num_tiles);
                 sgemm(vs.num_tiles,
                   us.oc,
                   us.ic,
@@ -1510,8 +1507,7 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
     
     else{
 
-        //printf("CUDA\n");
-          // 计算所需内存大小
+
         const long long A_size = vs.num_tiles * vs.ic;  // V矩阵大小
         const long long B_size = us.oc * us.ic;        // U矩阵大小
         const long long C_size = vs.num_tiles * us.oc;  // M矩阵大小
@@ -1524,13 +1520,11 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
         size_t d_B_req_size = sizeof(float) * batch_size * B_size;
         size_t d_C_req_size = sizeof(float) * batch_size * C_size;
         
-        // 初始化 cuBLAS (如果还没有初始化)
         if(!init_flag) {
             init_cublas();
             init_flag = true;
         }
         
-        // 初始化内存池（如果是第一次使用）
         if (!pool_initialized) {
             // 创建CUDA流
             if (g_stream == NULL && cudaStreamCreate(&g_stream) != cudaSuccess) {
@@ -1564,75 +1558,65 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
             ensure_memory_size((void**)&g_d_C, &g_d_C_size, d_C_req_size, false);
         
         
-        // 设置 cublas 流
         cublasSetStream(cublas_handle, g_stream);
 
-        // 普通内存分配（这些较小，可以每次重新分配）
         float *packed_filter = (float *)malloc(sizeof(float) * fs.h * fs.w * fs.oc * fs.ic);
         float *packed_image = (float *)malloc(sizeof(float) * ti.tile_in_h * ti.tile_in_w * ti.num_tiles * is.ic);
         float *Y = (float *)malloc(sizeof(float) * ti.tile_out_h * ti.tile_in_w * os.oc * ti.num_tiles);
 
-        // 准备数据阶段保持不变
         filter_packing(filter, packed_filter, fs);
         filter_transform(packed_filter, g_pinned_U, fs, us, us.oc * us.ic);
 
         image_packing(image, packed_image, is, ti);
         image_transform(packed_image, g_pinned_V, vs, ti, vs.ic * vs.num_tiles);
 
-        // 使用异步内存复制将数据传输到GPU
         cudaMemcpyAsync(g_d_A, g_pinned_V, batch_size * A_size * sizeof(float), 
                       cudaMemcpyHostToDevice, g_stream);
         cudaMemcpyAsync(g_d_B, g_pinned_U, batch_size * B_size * sizeof(float), 
                       cudaMemcpyHostToDevice, g_stream);
 
-        // 步长 - 每个矩阵的大小（元素数量）
         long long strideA = A_size;
         long long strideB = B_size;
         long long strideC = C_size;
 
-        // 执行批处理矩阵乘法
         const float alpha = 1.0f;
         const float beta = 0.0f;
 
-        // 使用带步长的批处理GEMM (在同一流中执行)
+ 
         cublasGemmStridedBatchedEx(
             cublas_handle,
-            CUBLAS_OP_T,     // A转置
-            CUBLAS_OP_N,     // B不转置
-            m,               // 矩阵C的行数(vs.num_tiles)
-            n,               // 矩阵C的列数(us.oc)
-            k,               // 内部维度(us.ic)
-            &alpha,          // 缩放因子
-            g_d_A,           // V矩阵起始地址
-            CUDA_R_32F,      // 数据类型:float
-            k,               // V矩阵的前导维度
-            strideA,         // V矩阵序列的步长
-            g_d_B,           // U矩阵起始地址
-            CUDA_R_32F,      // 数据类型:float
-            k,               // U矩阵的前导维度
-            strideB,         // U矩阵序列的步长
-            &beta,           // 缩放因子
-            g_d_C,           // M矩阵起始地址
-            CUDA_R_32F,      // 数据类型:float
-            m,               // M矩阵的前导维度
-            strideC,         // M矩阵序列的步长
-            batch_size,      // 批次数量
-            CUDA_R_32F,      // 计算类型:float
-            CUBLAS_GEMM_DEFAULT // 使用默认算法
+            CUBLAS_OP_T,     
+            CUBLAS_OP_N,    
+            m,               
+            n,               
+            k,              
+            &alpha,          
+            g_d_A,           
+            CUDA_R_32F,      
+            k,               
+            strideA,        
+            g_d_B,          
+            CUDA_R_32F,     
+            k,              
+            strideB,       
+            &beta,           
+            g_d_C,           
+            CUDA_R_32F,      
+            m,               
+            strideC,         
+            batch_size,      
+            CUDA_R_32F,      
+            CUBLAS_GEMM_DEFAULT 
         );
 
-        // 异步将结果复制回主机（使用页锁定内存）
         cudaMemcpyAsync(g_pinned_M, g_d_C, batch_size * C_size * sizeof(float), 
                       cudaMemcpyDeviceToHost, g_stream);
         
-        // 在流上同步，确保传输完成
         cudaStreamSynchronize(g_stream);
         
-        // 输出处理保持不变
         output_transform(g_pinned_M, Y, ti, us.oc * vs.num_tiles);
         output_unpacking_store(Y, out, os, ti);
 
-        // 释放普通内存
         free(packed_filter);
         free(packed_image);
         free(Y);
@@ -1644,7 +1628,7 @@ void winograd_convolution(float *__restrict__ image, const int image_height,
 
 //------------------------------------------------Finished--------------------------------------------------//
 
-void winograd_convolution_multistream(float *__restrict__ image, const int image_height,
+void winograd_convolution(float *__restrict__ image, const int image_height,
   const int image_width, const int input_channel_num,
   float *__restrict__ filter, const int output_channel_num,
   const int batch_num, float *__restrict__ out) {
